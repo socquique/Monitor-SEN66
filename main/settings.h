@@ -1,0 +1,49 @@
+// Ajustes persistentes en NVS.
+//
+// OJO (leccion de TamaPoke): escribir en NVS congela ~1 s los DOS nucleos.
+// Por eso settings_save() solo se llama desde el servidor web o al terminar
+// el aprovisionamiento, nunca desde el bucle de la UI ni por cada muestra.
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "esp_err.h"
+
+#define SETTINGS_PAGES 5 // resumen, CO2, particulas, gases, clima
+
+typedef struct {
+    char wifi_ssid[33];
+    char wifi_pass[65];
+
+    char mqtt_uri[96];   // p.ej. "mqtt://192.168.1.10:1883"
+    char mqtt_user[33];
+    char mqtt_pass[65];
+    char mqtt_prefix[32]; // prefijo de descubrimiento de HA, normalmente "homeassistant"
+
+    char device_name[32]; // como aparece en Home Assistant
+    char tz[48];          // cadena POSIX TZ, p.ej. "CET-1CEST,M3.5.0,M10.5.0/3"
+    char ntp[64];
+
+    uint8_t brightness;      // 1..255 (comando 0x51 del panel)
+    uint8_t night_brightness;// brillo al atenuar
+    uint16_t screen_timeout_s; // 0 = nunca atenuar
+    uint16_t page_dwell_s;     // 0 = sin rotacion automatica
+    uint8_t pages_mask;        // bit i = pagina i visible
+    uint16_t chart_span_min;   // ventana de las graficas, en minutos
+
+    int16_t temp_offset_dc;  // decimas de grado C, se resta a la lectura
+    uint16_t altitude_m;
+    bool co2_asc;            // autocalibracion del CO2
+} settings_t;
+
+// Carga de NVS; si no hay nada guardado deja los valores por defecto.
+esp_err_t settings_load(void);
+esp_err_t settings_save(void);
+settings_t *settings_get(void);
+void settings_defaults(settings_t *s);
+
+static inline bool settings_page_visible(const settings_t *s, int page)
+{
+    return (s->pages_mask >> page) & 1;
+}
