@@ -35,23 +35,24 @@ de expansión, a 100 kHz (el máximo que admite el SEN66), mientras el bus de a
 bordo (táctil, PMU, RTC, IMU, audio) sigue a 400 kHz. Ventaja de propina: el
 sensor no compite con el táctil.
 
-Los pines por defecto están en [`main/board.h`](main/board.h):
+**El esquema completo está en [docs/CABLEADO.md](docs/CABLEADO.md).** Resumen:
 
-```c
-#define BOARD_SEN66_PIN_SDA    17
-#define BOARD_SEN66_PIN_SCL    18
-```
+| SEN66 | Cable | → | Header H2 |
+|---|---|---|---|
+| 1 VDD | rojo | → | pin 3 (**3V3**, no VBUS) |
+| 2 GND | negro | → | pin 2 (GND) |
+| 3 SDA | verde | → | pin 6 (**GPIO17**) |
+| 4 SCL | amarillo | → | pin 7 (**GPIO18**) |
 
-**Estos dos valores están sin confirmar contra la serigrafía del header** (la
-wiki de Waveshare dice "3 GPIOs + 1 UART" pero no publica los números en la
-página del producto). No hace falta acertar a la primera: al arrancar, si el
-sensor no contesta en esos pines, el firmware **barre los pares candidatos**
-del header y avisa por consola de cuál funciona:
+Pines confirmados en la [referencia de hardware oficial](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/HARDWARE_REFERENCE.md)
+de la placa. Si se cablea de otra forma, no hace falta tocar nada a ciegas: al
+arrancar, si el sensor no contesta en esos pines, el firmware **barre los
+pares candidatos** del header y avisa por consola de cuál funciona:
 
 ```
 W (1234) sen66: no responde en SDA=17 SCL=18, barriendo header
 I (1500) sen66: producto: 'SEN66'
-W (1500) sen66: encontrado en SDA=13 SCL=21 (no en los de board.h); fija esos valores en BOARD_SEN66_PIN_*
+W (1500) sen66: encontrado en SDA=16 SCL=17 (no en los de board.h); fija esos valores en BOARD_SEN66_PIN_*
 ```
 
 Se anota el par bueno en `board.h`, se recompila y listo. La comprobación no
@@ -219,7 +220,5 @@ compilarlos igual en el PC.
 
 Compila limpio (ESP-IDF 5.5.2, 1,5 MB, sin warnings) y la UI está verificada
 en el simulador página a página. **Todavía no se ha probado contra hardware
-real** — el SEN66 está de camino. Al montarlo hay dos cosas que confirmar:
-los GPIOs del header (el firmware los detecta solo, ver arriba) y la
-rotación de pantalla `BOARD_LCD_ROTATION` según cómo quede el USB-C en la
-carcasa.
+real** — el SEN66 está de camino. Al montarlo queda por ajustar la rotación
+de pantalla `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa.

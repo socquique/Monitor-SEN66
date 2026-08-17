@@ -10,10 +10,11 @@ táctil, PMU, RTC o audio**, y añadirle lo que se aprenda.
 
 ## Invariantes que no hay que romper
 
-- **`main/board.h` es la fuente de verdad del pinout** y está verificado en
-  cuatro proyectos. No re-derivar pines ni "corregirlos" a ojo. La única
-  excepción marcada son `BOARD_SEN66_PIN_SDA/SCL`, que dependen de la
-  serigrafía del header y las autodetecta `sen66_init()`.
+- **`main/board.h` es la fuente de verdad del pinout**, verificado en cuatro
+  proyectos y contra la [referencia de hardware oficial](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/HARDWARE_REFERENCE.md).
+  No re-derivar pines ni "corregirlos" a ojo.
+- **Del header solo están libres GPIO16, 17 y 18** (más UART0 en 43/44).
+  GPIO13 es `LCD_TE` y GPIO21 es `QMI_INT2`: parecen libres y no lo están.
 - **El SEN66 va en el bus I2C 1, nunca en el 0.** Comparte dirección `0x6B`
   con el IMU QMI8658 de la placa. Y a 100 kHz: es su máximo.
 - **`air.c`, `history.c` y `ui.c` no pueden incluir nada de ESP-IDF.** Es lo
