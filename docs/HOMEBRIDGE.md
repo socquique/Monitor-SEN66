@@ -82,6 +82,32 @@ anade al accesorio de calidad del aire:
 
 y `"history": true`. Sabiendo que ese numero es un indice disfrazado de ug/m3.
 
+## El aviso de Node
+
+Homebridge avisa de que el plugin pide Node 18/20/22 y tu tienes 24:
+
+```
+The plugin "homebridge-mqttthing" requires a Node.js version of
+^18.12.0 || ^20.10.0 || ^22.11.0 which does not satisfy the current
+Node.js version of v24.19.0
+```
+
+**Es un aviso, no un fallo, y se puede ignorar.** No hay version que lo
+arregle: la 1.1.49 es de enero de 2026 y sigue declarando como maximo el 22.
+Comprobado con `logMqtt` activado sobre Node 24.19.0 y Homebridge 2.4.0:
+recibe los mensajes cada 10 s, las funciones `apply` los decodifican y las
+caracteristicas se actualizan.
+
+```
+[CO2] Received MQTT: sen66-8625d4/state = {"co2":470,...}
+[CO2] apply() function decoded message to [NORMAL]
+[CO2] apply() function decoded message to [470]
+```
+
+Bajar Node a 22 para callar el aviso arrastraria a todos los demas plugins,
+que ahora funcionan en 24: no compensa. Eso si, el autor no ha probado en 24,
+asi que si algun dia el plugin hace algo raro, esto es lo primero que mirar.
+
 ## Notas
 
 - El umbral de 1200 ppm del aviso de CO2 esta en el `apply`, no en el
