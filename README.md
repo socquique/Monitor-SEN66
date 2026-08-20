@@ -22,7 +22,7 @@ PM4.0 / PM10**, **índice VOC**, **índice NOx**, **temperatura** y
 | Pieza | Notas |
 |---|---|
 | Waveshare ESP32-S3-Touch-AMOLED-1.75 | SKU 31261 (las variantes -B y -G también sirven) |
-| Sensirion SEN66 | 5 V/3,3 V, I2C |
+| Sensirion SEN66 | 3,3 V ±5 %, I2C, viene con cable JST GH de 6 hilos |
 | 4 cables al header de 8 pines | 3V3, GND, SDA, SCL |
 | Cable USB-C | alimentación y flasheo |
 
@@ -37,17 +37,22 @@ sensor no compite con el táctil.
 
 **El esquema completo está en [docs/CABLEADO.md](docs/CABLEADO.md).** Resumen:
 
-| SEN66 | Cable | → | Header H2 |
-|---|---|---|---|
-| 1 VDD | rojo | → | pin 3 (**3V3**, no VBUS) |
-| 2 GND | negro | → | pin 2 (GND) |
-| 3 SDA | verde | → | pin 6 (**GPIO17**) |
-| 4 SCL | amarillo | → | pin 7 (**GPIO18**) |
+Se cablea por la **etiqueta serigrafiada** del header, no por numero de pin:
 
-Pines confirmados en la [referencia de hardware oficial](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/HARDWARE_REFERENCE.md)
-de la placa. Si se cablea de otra forma, no hace falta tocar nada a ciegas: al
-arrancar, si el sensor no contesta en esos pines, el firmware **barre los
-pares candidatos** del header y avisa por consola de cuál funciona:
+| SEN66 | Cable | → | Etiqueta en la placa |
+|---|---|---|---|
+| 1 VDD | rojo | → | **3V3** (¡no VBUS, que son 5 V!) |
+| 2 GND | negro | → | **GND** |
+| 3 SDA | verde | → | **IO17** |
+| 4 SCL | amarillo | → | **IO18** |
+
+Los cables azul y violeta (pines 5 y 6 del sensor) no se conectan. Ojo: el
+orden real del header es `IO18 IO17 IO16 RXD TXD 3V3 GND VBUS` y **no** coincide
+con la numeración 1..8 de la [referencia de hardware oficial](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75/blob/main/HARDWARE_REFERENCE.md).
+
+Si se cablea de otra forma, no hace falta tocar nada a ciegas: al arrancar,
+si el sensor no contesta en esos pines, el firmware **barre los pares
+candidatos** del header y avisa por consola de cuál funciona:
 
 ```
 W (1234) sen66: no responde en SDA=17 SCL=18, barriendo header
@@ -59,9 +64,13 @@ Se anota el par bueno en `board.h`, se recompila y listo. La comprobación no
 se queda en el ACK de la dirección: lee el nombre de producto y exige que
 empiece por `SEN6`, para no confundirse con otro chip.
 
-El SEN66 tiene ventilador: en los arranques pide picos de corriente de
-bastantes decenas de mA. Con la placa alimentada por USB-C no hay problema;
-con batería la autonomía será de horas, no de días.
+El SEN66 tiene ventilador y **Sensirion avisa de picos de hasta 350 mA**.
+Waveshare no especifica cuánta corriente da el 3V3 del header; en la práctica
+el buck del AXP2101 va sobrado, pero conviene alimentar la placa con un
+cargador USB-C de 1 A o más y no desde un puerto de hub. Si aparecen
+reinicios por brownout, errores de CRC o `fan_error`, la causa es ésa y la
+solución es una fuente de 3,3 V aparte para el sensor con GND común. Con
+batería la autonomía será de horas, no de días.
 
 ## Compilar y flashear
 

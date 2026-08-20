@@ -67,15 +67,27 @@ source ~/esp/esp-idf/export.sh && idf.py build
 idf.py -p /dev/cu.usbmodem1101 flash monitor
 ```
 
-## Pendiente al recibir el hardware
+## Ya verificado contra el hardware (20-08-2026)
 
-1. Confirmar los GPIOs del header con la salida de `sen66_init()` y fijarlos
-   en `board.h`.
-2. Ajustar `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa
+Primer arranque real: pantalla, táctil, RTC y SEN66 (serie 442E788C003F85BF,
+firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
+
+- **El buffer de LVGL no puede ser un número fijo de filas.** En esta placa el
+  mayor bloque contiguo interno con DMA es de **144 KB**, no los ~192 KB de
+  Hamlet, así que las 185 filas heredadas no caben y `lvgl_port_add_disp()`
+  falla en bootloop. `display.c` lo calcula ahora en tiempo de ejecución
+  reservando 56 KB para el resto del sistema. No volver a fijarlo a mano.
+- **Vigilar el heap interno libre que imprime `app_main` al terminar.** Con
+  el buffer al máximo quedaban 26 KB, muy justo para WiFi en modo estación +
+  MQTT + OTA. Con 96 filas quedan 42 KB. Si hay que recortar, se recorta de
+  la pantalla: 96 y 114 filas vuelcan los mismos 5 trozos por frame.
+- **La serigrafía del header manda sobre la documentación.** Ver `board.h`.
+
+## Pendiente
+
+1. Ajustar `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa
    (recordar: el táctil lleva la transformación **inversa** a la del panel;
    los dos `#if` de `display.c` ya están emparejados, cambiar solo la macro).
-3. Medir el offset real de temperatura contra un termómetro y meterlo en el
+2. Medir el offset real de temperatura contra un termómetro y meterlo en el
    panel web.
-4. Revisar el mayor bloque DMA interno libre que informa `display.c` al
-   arrancar; si baja de ~180 KB, el buffer de 185 filas no cabrá y habrá que
-   reducirlo.
+3. Configurar WiFi y MQTT por el portal y comprobar el descubrimiento en HA.

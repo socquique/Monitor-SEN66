@@ -40,14 +40,18 @@
 // propio bus I2C (puerto 1) sobre GPIOs del header de 8 pines, ademas a
 // 100 kHz, que es el maximo que admite el sensor.
 //
-// Header de expansion H2 (2.54mm, 8 pines), CONFIRMADO en la referencia de
-// hardware oficial (waveshareteam/ESP32-S3-Touch-AMOLED-1.75):
-//   1 VBUS · 2 GND · 3 3V3 · 4 GPIO44/U0RXD · 5 GPIO43/U0TXD
-//   6 GPIO17 · 7 GPIO18 · 8 GPIO16
-// Logica de 3.3V y NO tolerante a 5V.
+// Header de expansion de 8 pines. Cablear SIEMPRE por la etiqueta
+// serigrafiada, no por numero de pin: la serigrafia de la placa lee, de
+// izquierda a derecha vista por detras con el USB-C a la derecha,
+//
+//   IO18 · IO17 · IO16 · RXD · TXD · 3V3 · GND · VBUS
+//
+// que NO coincide con el orden 1..8 que publica la HARDWARE_REFERENCE.md
+// oficial (alli 1=VBUS ... 6=GPIO17, 7=GPIO18, 8=GPIO16). Manda el cobre.
+// Logica de 3.3V y NO tolerante a 5V; el VBUS son 5 V del USB.
 #define BOARD_SEN66_I2C_PORT   1
-#define BOARD_SEN66_PIN_SDA    17  // header pin 6
-#define BOARD_SEN66_PIN_SCL    18  // header pin 7
+#define BOARD_SEN66_PIN_SDA    17  // etiqueta IO17
+#define BOARD_SEN66_PIN_SCL    18  // etiqueta IO18
 
 // Pares que prueba el autodetector si el sensor no contesta en los de
 // arriba (por si se cablea distinto). Solo GPIOs realmente libres del

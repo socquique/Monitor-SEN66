@@ -136,19 +136,34 @@ esp_err_t display_init(void)
     esp_lcd_touch_handle_t touch;
     ESP_RETURN_ON_ERROR(touch_init(&touch), TAG, "touch");
 
-    ESP_LOGI(TAG, "mayor bloque DMA interno libre: %u KB",
-             (unsigned)(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA) / 1024));
-
     const lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     ESP_RETURN_ON_ERROR(lvgl_port_init(&port_cfg), TAG, "lvgl port");
+
+    // El buffer de volcado tiene que estar en RAM interna con DMA: el driver
+    // SPI rechaza color desde PSRAM (probado: transmit failed + watchdog).
+    // Cuanto mas grande, menos trozos por frame y menos tearing, pero el
+    // mayor bloque contiguo libre depende de lo que haya arrancado antes y
+    // varia entre proyectos y entre revisiones de IDF (aqui ~144 KB, no los
+    // ~192 KB de Hamlet). Lo dimensionamos con lo que hay de verdad en vez
+    // de con un numero fijo, que es como se llego a un bootloop.
+    const size_t largest =
+        heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
+    // 56 KB de margen: con 144 KB contiguos salen 96 filas, que se vuelcan
+    // en los mismos 5 trozos por frame que 114, pero dejan 16 KB mas de heap
+    // interno para WiFi en modo estacion, MQTT y OTA.
+    const size_t reserve = 56 * 1024;
+    const size_t usable = largest > reserve ? largest - reserve : largest / 2;
+    int rows = (int)(usable / (BOARD_LCD_H_RES * sizeof(uint16_t)));
+    if (rows > 185) rows = 185; // por encima no aporta: son 466 lineas
+    if (rows < 40) rows = 40;   // por debajo el refresco se nota a tirones
+    ESP_LOGI(TAG, "bloque DMA interno libre %u KB -> buffer LVGL de %d filas (%u KB)",
+             (unsigned)(largest / 1024), rows,
+             (unsigned)(rows * BOARD_LCD_H_RES * 2 / 1024));
 
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = s_panel_io,
         .panel_handle = panel,
-        // UN buffer interno con DMA lo mas grande posible. NO usar
-        // framebuffer completo en PSRAM con direct_mode: el driver SPI
-        // rechaza color desde PSRAM (transmit failed + watchdog).
-        .buffer_size = BOARD_LCD_H_RES * 185,
+        .buffer_size = BOARD_LCD_H_RES * rows,
         .double_buffer = false,
         .hres = BOARD_LCD_H_RES,
         .vres = BOARD_LCD_V_RES,
