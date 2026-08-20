@@ -42,8 +42,15 @@ táctil, PMU, RTC o audio**, y añadirle lo que se aprenda.
   la línea de estado y el texto verde quedaba invisible sobre el arco verde.
   Cualquier elemento que se ponga a menos de ~70 px del borde superior va a
   chocar con la chrome.
-- Las gráficas dentro de un anillo tienen que caber en el círculo: a
-  y = +115 del centro el ancho libre dentro de `RING_D` es ~200 px, no 240.
+- **El hueco libre dentro del anillo tiene radio 139**, no 161: `RING_D/2`
+  es el borde exterior y hay que restarle los 22 de grosor del arco. De ahí
+  salen los números de la UI: a y=±104 solo caben 184 px de ancho (por eso la
+  gráfica del CO₂ es de 180 y no de 200), y a y=±80 unos 227 (por eso los
+  secundarios del resumen van a dx=62 y con rótulos abreviados).
+- **Los dos anillos no son la misma cosa.** El del resumen es un semáforo que
+  se pinta entero y lleva indicador del mismo grosor que la pista; los de
+  medida llevan el indicador 8 px más fino, porque a igual grosor un valor
+  pequeño dibuja un pegote suelto que parece un fallo de render.
 - `lv_chart` trabaja con enteros. Para métricas con decimales (temperatura,
   PM) hay que **escalar ×10** antes de meterlas o la curva sale escalonada
   (`chart_refresh`).

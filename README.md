@@ -127,9 +127,9 @@ Cinco páginas, se pasa arrastrando el dedo y rotan solas cada 12 s
 |---|---|
 | Resumen | Anillo semáforo con el peor de los contaminantes y qué métrica manda |
 | CO₂ | Valor grande, anillo 400–2400 ppm y gráfica de la última hora |
-| Partículas | PM1.0 / PM2.5 / PM4.0 / PM10 con barras de color |
+| Partículas | PM2.5 en grande con anillo; PM1.0 / PM4.0 / PM10 debajo |
 | Gases | Índices VOC y NOx en dos anillos |
-| Clima | Temperatura y humedad + gráfica |
+| Clima | Temperatura y humedad, y ambas curvas superpuestas con escala propia |
 
 En AMOLED el negro es píxel apagado, así que el fondo negro no consume y el
 atenuado por inactividad ahorra de verdad.
