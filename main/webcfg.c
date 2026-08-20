@@ -3,6 +3,7 @@
 #include "ha_mqtt.h"
 #include "net.h"
 #include "pmu_axp2101.h"
+#include "sound.h"
 #include "sen66.h"
 #include "settings.h"
 #include "version.h"
@@ -271,6 +272,19 @@ static esp_err_t h_settings_post(httpd_req_t *req)
 }
 
 // ----------------------------------------------------------- mantenimiento
+// Prueba del altavoz: sin esto no hay forma de saber si el audio funciona
+// sin esperar a que el CO2 pase del umbral.
+static esp_err_t h_beep(httpd_req_t *req)
+{
+    if (!sound_available()) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin audio");
+        return ESP_FAIL;
+    }
+    sound_play(SOUND_TEST);
+    httpd_resp_sendstr(req, "ok");
+    return ESP_OK;
+}
+
 static esp_err_t h_fanclean(httpd_req_t *req)
 {
     if (sen66_fan_clean() != ESP_OK) {
@@ -349,6 +363,7 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
         {.uri = "/api/settings",  .method = HTTP_GET,  .handler = h_settings_get},
         {.uri = "/api/settings",  .method = HTTP_POST, .handler = h_settings_post},
         {.uri = "/api/fanclean",  .method = HTTP_POST, .handler = h_fanclean},
+        {.uri = "/api/beep",      .method = HTTP_POST, .handler = h_beep},
         {.uri = "/api/reboot",    .method = HTTP_POST, .handler = h_reboot},
         {.uri = "/api/ota",       .method = HTTP_POST, .handler = h_ota},
     };

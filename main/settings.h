@@ -35,6 +35,14 @@ typedef struct {
     int16_t temp_offset_dc;  // decimas de grado C, se resta a la lectura
     uint16_t altitude_m;
     bool co2_asc;            // autocalibracion del CO2
+
+    // --- Campos nuevos SIEMPRE al final ---
+    // settings_load() acepta blobs mas cortos que esta estructura, asi que
+    // anadir aqui no obliga a nadie a reconfigurar. Insertar en medio, si.
+    bool alarm_enabled;      // aviso sonoro al pasar el umbral de CO2
+    uint16_t alarm_co2_ppm;  // umbral de disparo
+    uint16_t alarm_clear_ppm;// umbral de rearme (histeresis)
+    uint8_t alarm_volume;    // 0..100
 } settings_t;
 
 // Carga de NVS; si no hay nada guardado deja los valores por defecto.

@@ -33,6 +33,10 @@ void settings_defaults(settings_t *s)
     s->temp_offset_dc = 0;
     s->altitude_m = 0;
     s->co2_asc = true;
+    s->alarm_enabled = true;
+    s->alarm_co2_ppm = 1200;
+    s->alarm_clear_ppm = 1000; // histeresis: no pita cada vez que roza el umbral
+    s->alarm_volume = 60;
 }
 
 esp_err_t settings_load(void)
@@ -53,10 +57,19 @@ esp_err_t settings_load(void)
     }
 
     uint8_t ver = 0;
-    size_t len = sizeof(s_cfg);
-    settings_t tmp;
+    // Partimos de los valores por defecto y dejamos que lo guardado los pise.
+    // Aceptamos blobs MAS CORTOS que la estructura actual: mientras los campos
+    // nuevos se anadan siempre al final, actualizar el firmware no obliga a
+    // reconfigurar la red y el broker, que es lo que pasaba antes.
+    settings_t tmp = s_cfg;
+    size_t len = sizeof(tmp);
     if (nvs_get_u8(h, "ver", &ver) == ESP_OK && ver == CFG_VERSION &&
-        nvs_get_blob(h, NVS_KEY, &tmp, &len) == ESP_OK && len == sizeof(tmp)) {
+        nvs_get_blob(h, NVS_KEY, &tmp, &len) == ESP_OK && len <= sizeof(tmp)) {
+        if (len < sizeof(tmp)) {
+            ESP_LOGI(TAG, "configuracion de una version anterior (%u de %u bytes):"
+                          " los campos nuevos quedan por defecto",
+                     (unsigned)len, (unsigned)sizeof(tmp));
+        }
         s_cfg = tmp;
         ESP_LOGI(TAG, "configuracion cargada (wifi='%s', mqtt='%s')",
                  s_cfg.wifi_ssid, s_cfg.mqtt_uri);

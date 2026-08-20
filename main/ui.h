@@ -32,7 +32,10 @@ void ui_update(const air_sample_t *s);
 
 // Linea de estado: hora "HH:MM", indicadores de red y un mensaje opcional
 // (p.ej. "calentando", "sin sensor" o el SSID del portal).
-void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg);
+// `bat_pct` a -1 cuando no hay bateria conectada: entonces no se dibuja nada,
+// que un aparato enchufado no necesita indicador.
+void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg,
+                   int bat_pct, bool charging);
 
 // Llamar una vez por segundo: rotacion de pagina y atenuado por inactividad.
 void ui_tick_1s(void);

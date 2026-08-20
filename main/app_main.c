@@ -32,6 +32,7 @@
 #include "history.h"
 #include "net.h"
 #include "pmu_axp2101.h"
+#include "sound.h"
 #include "rtc_pcf85063.h"
 #include "sen66.h"
 #include "settings.h"
@@ -162,6 +163,26 @@ static void sensor_configure(void)
     sen66_set_co2_asc(cfg->co2_asc);
 }
 
+// Aviso sonoro del CO2, con histeresis: dispara al pasar el umbral y no se
+// rearma hasta bajar del de despeje. Sin eso, un valor rondando el limite
+// pitaria cada pocos segundos y acabarias desenchufando el altavoz.
+static void alarm_check(float co2)
+{
+    static bool disparada;
+    const settings_t *cfg = settings_get();
+    if (!cfg->alarm_enabled || !sound_available() || isnan(co2)) return;
+
+    if (!disparada && co2 >= cfg->alarm_co2_ppm) {
+        disparada = true;
+        ESP_LOGW(TAG, "CO2 %.0f ppm: aviso", co2);
+        sound_play(SOUND_ALERT);
+    } else if (disparada && co2 <= cfg->alarm_clear_ppm) {
+        disparada = false;
+        ESP_LOGI(TAG, "CO2 %.0f ppm: ventilado", co2);
+        sound_play(SOUND_CLEAR);
+    }
+}
+
 // Reinicia el bus y el sensor. Un tropiezo del I2C dejaba el aparato mudo
 // hasta el siguiente reinicio a mano.
 static void sensor_recover(void)
@@ -195,6 +216,7 @@ static void sensor_task(void *arg)
             if (err == ESP_OK) {
                 s_last_read_us = esp_timer_get_time();
                 s_had_reading = true;
+                alarm_check(fresh.v[AIR_CO2]);
                 xSemaphoreTake(s_lock, portMAX_DELAY);
                 s_sample = fresh;
                 xSemaphoreGive(s_lock);
@@ -301,7 +323,15 @@ static void ui_timer_cb(lv_timer_t *t)
     status_message(msg, sizeof(msg));
 
     ui_update(&snap);
-    ui_set_status(time_str, net_state() == NET_CONNECTED, ha_mqtt_connected(), msg);
+    int bat_pct = -1;
+    bool charging = false;
+    pmu_status_t b;
+    if (pmu_available() && pmu_read(&b) == ESP_OK && b.present) {
+        bat_pct = b.percent;
+        charging = b.charging;
+    }
+    ui_set_status(time_str, net_state() == NET_CONNECTED, ha_mqtt_connected(), msg,
+                  bat_pct, charging);
     ui_tick_1s();
 }
 
@@ -327,6 +357,9 @@ void app_main(void)
 
     ESP_ERROR_CHECK(rtc_pcf85063_init(display_i2c_bus()));
     pmu_init(display_i2c_bus()); // sin ESP_ERROR_CHECK: sin PMU se sigue viviendo
+    if (sound_init(display_i2c_bus()) == ESP_OK) {
+        sound_set_volume(settings_get()->alarm_volume);
+    }
     clock_from_rtc();
     net_set_time_sync_cb(clock_to_rtc);
 

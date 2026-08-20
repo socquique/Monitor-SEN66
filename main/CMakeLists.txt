@@ -7,6 +7,7 @@ idf_component_register(
         "history.c"
         "net.c"
         "pmu_axp2101.c"
+        "sound.c"
         "rtc_pcf85063.c"
         "sen66.c"
         "settings.c"

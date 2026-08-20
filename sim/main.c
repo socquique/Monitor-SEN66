@@ -184,7 +184,9 @@ int main(int argc, char **argv)
             snprintf(hhmm, sizeof(hhmm), "%02ld:%02ld",
                      (vnow_s / 3600) % 24, (vnow_s / 60) % 60);
             ui_update(&s);
-            ui_set_status(hhmm, true, true, "");
+            // bateria simulada: baja despacio para ver los tramos de color
+            int bat = 100 - (int)((vnow_s / 40) % 105);
+            ui_set_status(hhmm, true, true, "", bat < 0 ? 0 : bat, bat > 95);
             ui_tick_1s();
         }
 

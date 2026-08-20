@@ -40,6 +40,7 @@ static lv_obj_t *s_tv;
 static lv_obj_t *s_status_time;
 static lv_obj_t *s_status_msg;
 static lv_obj_t *s_status_net;
+static lv_obj_t *s_status_bat;
 static lv_obj_t *s_dots[UI_PAGE_COUNT];
 
 // pagina -> columna del tileview (-1 si esa pagina esta oculta)
@@ -350,6 +351,11 @@ static void build_chrome(lv_obj_t *scr)
     s_status_net = make_label(scr, &lv_font_montserrat_14, 0x475569);
     lv_obj_align(s_status_net, LV_ALIGN_CENTER, 0, -124);
 
+    // La bateria va abajo, en el hueco que el anillo deja libre: ahi no
+    // estorba a ninguna pagina y se ve de un vistazo.
+    s_status_bat = make_label(scr, &lv_font_montserrat_16, 0x94a3b8);
+    lv_obj_align(s_status_bat, LV_ALIGN_CENTER, 0, 148);
+
     s_status_msg = make_label(scr, &lv_font_montserrat_14, 0xfacc15);
     lv_obj_align(s_status_msg, LV_ALIGN_BOTTOM_MID, 0, -52);
 
@@ -542,7 +548,8 @@ void ui_update(const air_sample_t *s)
     }
 }
 
-void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg)
+void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg,
+                   int bat_pct, bool charging)
 {
     if (!s_status_time) return;
     lv_label_set_text(s_status_time, time_str ? time_str : "");
@@ -557,6 +564,27 @@ void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg)
                                                       : 0x64748b), 0);
 
     lv_label_set_text(s_status_msg, msg ? msg : "");
+
+    if (bat_pct < 0) {
+        lv_label_set_text(s_status_bat, "");
+    } else {
+        // Los simbolos de bateria son glifos de las propias fuentes de LVGL,
+        // asi que no rompen la regla de solo-ASCII de los textos.
+        const char *icono = charging      ? LV_SYMBOL_CHARGE
+                          : bat_pct >= 80 ? LV_SYMBOL_BATTERY_FULL
+                          : bat_pct >= 55 ? LV_SYMBOL_BATTERY_3
+                          : bat_pct >= 30 ? LV_SYMBOL_BATTERY_2
+                          : bat_pct >= 12 ? LV_SYMBOL_BATTERY_1
+                                          : LV_SYMBOL_BATTERY_EMPTY;
+        char buf[24];
+        snprintf(buf, sizeof(buf), "%s %d%%", icono, bat_pct);
+        lv_label_set_text(s_status_bat, buf);
+        const uint32_t color = charging     ? 0x22c55e
+                             : bat_pct < 12 ? 0xef4444
+                             : bat_pct < 30 ? 0xf97316
+                                            : 0x94a3b8;
+        lv_obj_set_style_text_color(s_status_bat, col(color), 0);
+    }
 }
 
 void ui_wake(void)
