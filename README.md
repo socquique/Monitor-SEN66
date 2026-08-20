@@ -187,8 +187,20 @@ Al guardar, **el aparato se reinicia**: es la forma limpia de aplicar de una
 vez la red, el MQTT, las páginas y los ajustes del propio sensor, sin quedarse
 a medias. El brillo sí se aplica al instante.
 
-También hay botones para **limpiar el ventilador** del sensor (10 s, conviene
-una vez al mes) y para **subir un `.bin`** y actualizar por OTA.
+También hay botones para **limpiar el ventilador** del sensor, para **probar
+el altavoz** y para **subir un `.bin`** y actualizar por OTA. La limpieza
+además se lanza **sola una vez por semana**, que es lo que recomienda
+Sensirion; la fecha de la última se guarda en NVS para que reiniciar no
+reinicie la cuenta.
+
+### Sobre la seguridad del panel
+
+**El panel web no tiene contraseña, y es a propósito.** Cualquiera en tu red
+local puede cambiar los ajustes, reiniciarlo y **subirle firmware por
+`/api/ota`**. Para un aparato doméstico en una red de confianza es un
+compromiso razonable —y hace que actualizarlo sea trivial—, pero conviene
+saberlo: si tu WiFi tiene invitados o cacharros poco fiables, esto es una
+puerta abierta.
 
 ## Puesta a punto del sensor
 

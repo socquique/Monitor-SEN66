@@ -32,7 +32,10 @@ typedef struct {
     uint8_t pages_mask;        // bit i = pagina i visible
     uint16_t chart_span_min;   // ventana de las graficas, en minutos
 
-    int16_t temp_offset_dc;  // decimas de grado C, se resta a la lectura
+    // Decimas de grado C. Se SUMA a la lectura del sensor, que es como lo
+    // define Sensirion: para corregir un aparato que marca de mas, va en
+    // negativo. El comentario decia lo contrario y era falso.
+    int16_t temp_offset_dc;
     uint16_t altitude_m;
     bool co2_asc;            // autocalibracion del CO2
 
@@ -43,6 +46,7 @@ typedef struct {
     uint16_t alarm_co2_ppm;  // umbral de disparo
     uint16_t alarm_clear_ppm;// umbral de rearme (histeresis)
     uint8_t alarm_volume;    // 0..100
+    uint32_t last_fan_clean;  // epoch de la ultima limpieza de ventilador
 } settings_t;
 
 // Carga de NVS; si no hay nada guardado deja los valores por defecto.

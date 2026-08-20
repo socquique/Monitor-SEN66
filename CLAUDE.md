@@ -101,12 +101,21 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
   anunciaba 192.168.4.1 estando en la red de casa. Loguear lo que se ha
   verificado, no lo que se pretendía hacer.
 
+## Decisiones tomadas
+
+- **El panel web va sin contraseña a propósito.** Red doméstica de confianza,
+  y a cambio actualizar por OTA es trivial. Queda anotado en el README para
+  que sea una decisión y no un descuido.
+- **El ventilador NO se cicla con batería.** Sería el mayor ahorro, pero
+  parado no se mide nada (ver el comentario en `app_main.c`). Autonomía
+  medida con todo funcionando: ~5 h con una celda de 1000 mAh.
+
 ## Pendiente
 
-1. Ajustar `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa
-   (recordar: el táctil lleva la transformación **inversa** a la del panel;
-   los dos `#if` de `display.c` ya están emparejados, cambiar solo la macro).
-2. Medir el offset real de temperatura contra un termómetro y meterlo en el
-   panel web.
-3. Medir la autonomía real con batería (el perfil se activa solo al quitar
-   el USB; consultar `/api/state` por WiFi, que sin USB no hay puerto serie).
+1. Aplicar el offset de temperatura: contra el Qingping salen **+1,2 °C** de
+   autocalentamiento (y la humedad, −8,8 %, es consecuencia de eso). Mejor
+   confirmarlo antes con un termómetro independiente.
+2. Sacar al panel web los ajustes de la alarma (`alarm_*`), que solo se
+   pueden cambiar recompilando.
+3. Exponer la recalibración forzada de CO₂. Ahora mismo no hace falta: el
+   SEN66 y el Qingping coinciden al ppm.

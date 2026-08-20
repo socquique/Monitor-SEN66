@@ -67,6 +67,12 @@ static const char *TAG = "app";
 // que medir antes cuanto tardan las lecturas en estabilizarse tras arrancar.
 #define BATT_MQTT_PERIOD_S 60
 
+// Sensirion recomienda limpiar el ventilador una vez por semana. Con boton
+// manual no lo pulsa nadie, asi que se programa. La fecha de la ultima va a
+// NVS: si se guardara solo en RAM, cada reinicio reiniciaria la cuenta y con
+// lo que se reinicia esto no se limpiaria jamas.
+#define FAN_CLEAN_PERIOD_S (7 * 24 * 3600)
+
 // Cada cuanto anotar la bateria en el log. Sirve para medir el consumo real:
 // dos puntos separados en el tiempo dan la pendiente de descarga.
 #define BATT_LOG_PERIOD_S 300
@@ -183,6 +189,30 @@ static void sensor_configure(void)
     sen66_set_co2_asc(cfg->co2_asc);
 }
 
+// Limpieza semanal del ventilador (10 s a maxima velocidad). Necesita hora
+// real, asi que no hace nada hasta que el RTC o el NTP la den por buena.
+static void fan_clean_check(void)
+{
+    const time_t ahora = time(NULL);
+    if (ahora < 1700000000) return; // sin hora fiable todavia
+
+    settings_t *cfg = settings_get();
+    if (cfg->last_fan_clean == 0) {
+        // Primer arranque con esta funcion: no limpiamos de golpe, solo
+        // anotamos la fecha para empezar a contar.
+        cfg->last_fan_clean = (uint32_t)ahora;
+        settings_save();
+        return;
+    }
+    if ((uint32_t)ahora - cfg->last_fan_clean < FAN_CLEAN_PERIOD_S) return;
+
+    ESP_LOGI(TAG, "limpieza semanal del ventilador");
+    if (sen66_fan_clean() == ESP_OK) {
+        cfg->last_fan_clean = (uint32_t)ahora;
+        settings_save();
+    }
+}
+
 // Aviso sonoro del CO2, con histeresis: dispara al pasar el umbral y no se
 // rearma hasta bajar del de despeje. Sin eso, un valor rondando el limite
 // pitaria cada pocos segundos y acabarias desenchufando el altavoz.
@@ -284,6 +314,7 @@ static void sensor_task(void *arg)
         if (vivo && now >= next_voc_us) {
             next_voc_us = now + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
             voc_state_save();
+            fan_clean_check(); // aprovechamos el mismo despertar horario
         }
 
         if (vivo && now >= next_mqtt_us) {
