@@ -121,6 +121,13 @@ static void publish_discovery_extras(void)
 
 static void publish_discovery(void)
 {
+    // Prefijo vacio = no queremos autodescubrimiento (p.ej. se usa Homebridge
+    // en vez de Home Assistant). Sin esto los mensajes salian igual, con el
+    // tema empezando por '/', que es basura retenida en el broker.
+    if (settings_get()->mqtt_prefix[0] == '\0') {
+        ESP_LOGI(TAG, "sin prefijo de descubrimiento, no publico configuracion");
+        return;
+    }
     for (int m = 0; m < AIR_METRIC_COUNT; m++) publish_discovery_one((air_metric_t)m);
     publish_discovery_extras();
     ESP_LOGI(TAG, "descubrimiento publicado (%d entidades)", AIR_METRIC_COUNT + 2);
@@ -216,5 +223,9 @@ void ha_mqtt_publish(const air_sample_t *s)
     n += snprintf(json + n, sizeof(json) - n, "%s\"level\":\"%s\",\"rssi\":%d}",
                   n > 1 ? "," : "", air_level_text(air_overall(s)), net_rssi());
 
-    esp_mqtt_client_publish(s_client, s_state_topic, json, n, 0, 0);
+    // RETENIDO a proposito: quien se suscriba despues (Home Assistant o
+    // Homebridge al reiniciar) recibe el ultimo estado al instante en vez de
+    // quedarse a ciegas hasta el siguiente envio. Que el dato sea viejo si el
+    // aparato se cae ya lo cubre el tema de disponibilidad con el last will.
+    esp_mqtt_client_publish(s_client, s_state_topic, json, n, 0, 1);
 }

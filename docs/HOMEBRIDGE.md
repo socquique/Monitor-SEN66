@@ -9,27 +9,44 @@ Las funciones `apply` estan probadas contra el JSON real del aparato.
 
 ## Montaje
 
-1. **Broker en la DietPi** (Mosquitto ocupa 5-10 MB de RAM):
+1. **Broker en la DietPi.** `dietpi-software` NO lo trae en su catalogo
+   (comprobado en DietPi 10.6): va por apt.
 
    ```bash
-   dietpi-software list | grep -i mosquitto   # saca el ID
-   dietpi-software install <ID>
+   apt-get install -y mosquitto mosquitto-clients
    ```
 
    Mosquitto 2.x de fabrica **solo escucha en localhost y rechaza conexiones
    anonimas**: recien instalado el monitor no conecta y no dice por que.
 
    ```bash
-   sudo tee /etc/mosquitto/conf.d/local.conf <<'EOF'
+   cat > /etc/mosquitto/conf.d/local.conf <<'EOF'
    listener 1883 0.0.0.0
    allow_anonymous false
    password_file /etc/mosquitto/passwd
    EOF
-   sudo mosquitto_passwd -c /etc/mosquitto/passwd monitor
-   sudo systemctl restart mosquitto
+   mosquitto_passwd -c /etc/mosquitto/passwd monitor
+   chown mosquitto:mosquitto /etc/mosquitto/passwd
+   chmod 0600 /etc/mosquitto/passwd
+   systemctl restart mosquitto
    ```
 
-2. **Plugin**: instalar `homebridge-mqttthing` desde la interfaz de Homebridge.
+   Dos piedras con las que se tropieza seguro:
+
+   - **No repetir `persistence` ni `persistence_location`** en `conf.d`: ya
+     vienen en el `mosquitto.conf` del paquete de Debian y el servicio se
+     niega a arrancar con `Duplicate persistence_location value`.
+   - **El fichero de contrasenas debe ser `mosquitto:mosquitto` y 0600.** Con
+     `root:root` el broker sale con estado 13 (permiso denegado). Confunde que
+     `mosquitto_passwd`, corriendo como root, avise justo de lo contrario: el
+     que manda es el broker, que corre como `mosquitto`.
+
+2. **Plugin**: desde la interfaz de Homebridge, o por consola si es la
+   instalacion oficial con Node propio en `/opt/homebridge`:
+
+   ```bash
+   hb-service add homebridge-mqttthing
+   ```
 
 3. **Aparato**: en su panel web, broker `mqtt://IP-DE-LA-DIETPI:1883` con ese
    usuario y contrasena. Al guardar se reinicia.
@@ -71,6 +88,11 @@ y `"history": true`. Sabiendo que ese numero es un indice disfrazado de ug/m3.
   firmware: se cambia en el `config.json` y basta reiniciar Homebridge.
 - El firmware publica igualmente los mensajes de autodescubrimiento de Home
   Assistant bajo `homeassistant/...`. Sin HA se quedan ahi retenidos sin
-  molestar; para limpiarlos, vaciar el prefijo en el panel web.
+  molestar, y si algun dia anades HA el aparato aparece solo. Para no
+  publicarlos, **vaciar el prefijo** en el panel web.
+- El tema de estado se publica **retenido**, asi que al reiniciar Homebridge
+  los accesorios recuperan el ultimo valor al instante. Sin eso, mqttthing
+  arranca avisando de `characteristic value ... received "undefined"` hasta
+  que llega el siguiente envio.
 - El aparato **no depende de nada de esto**: la pantalla y su panel web
   funcionan aunque la DietPi este apagada.
