@@ -120,8 +120,10 @@ Los índices VOC/NOx no tienen clase porque en HA no existe: van con icono.
 
 ## La pantalla
 
-Cinco páginas, se pasa arrastrando el dedo y rotan solas cada 12 s
-(configurable; 0 lo desactiva).
+Cinco páginas, **se pasan arrastrando el dedo y no rotan solas**. Al no tocar
+nada durante `screen_timeout_s` la pantalla se atenúa y muestra una **vista de
+reposo con las nueve magnitudes** a la vez; al tocar vuelve exactamente a la
+página donde estabas.
 
 | Página | Contenido |
 |---|---|

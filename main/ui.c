@@ -41,6 +41,15 @@ static lv_obj_t *s_status_time;
 static lv_obj_t *s_status_msg;
 static lv_obj_t *s_status_net;
 static lv_obj_t *s_status_bat;
+
+// Vista de reposo: al no tocar nada, la pantalla se atenua y muestra TODAS
+// las magnitudes de un vistazo. Es un panel aparte por encima del tileview,
+// no una pagina mas: asi no entra en el desplazamiento y al despertar se
+// vuelve exactamente a donde estabas.
+static lv_obj_t *s_idle_panel;
+static lv_obj_t *s_idle_val[AIR_METRIC_COUNT];
+static lv_obj_t *s_idle_level;
+static bool s_idle_shown;
 static lv_obj_t *s_dots[UI_PAGE_COUNT];
 
 // pagina -> columna del tileview (-1 si esa pagina esta oculta)
@@ -59,7 +68,6 @@ static lv_obj_t *s_cl_temp, *s_cl_hum, *s_cl_chart;
 static lv_chart_series_t *s_cl_ser, *s_cl_ser_hum;
 
 static uint32_t s_idle_s;
-static uint32_t s_dwell_s;
 static bool s_dimmed;
 static bool s_on_battery;
 #define UI_BATTERY_TIMEOUT_S 30
@@ -343,6 +351,42 @@ static void build_climate(lv_obj_t *tile)
 }
 
 // ------------------------------------------------------------------ estado
+// Las nueve magnitudes en rejilla 3x3, con el veredicto arriba. A y=+123, que
+// es lo mas bajo que llega el texto, el cristal deja 156 px a cada lado: de
+// ahi las columnas a +-112.
+static void build_idle(lv_obj_t *scr)
+{
+    s_idle_panel = plain(scr);
+    lv_obj_set_size(s_idle_panel, SCR_W, SCR_H);
+    lv_obj_center(s_idle_panel);
+    lv_obj_add_flag(s_idle_panel, LV_OBJ_FLAG_HIDDEN);
+    // Que no capture toques: el gesto tiene que llegar igual para despertar.
+    lv_obj_remove_flag(s_idle_panel, LV_OBJ_FLAG_CLICKABLE);
+
+    s_idle_level = make_label(s_idle_panel, &lv_font_montserrat_28, 0xffffff);
+    lv_obj_align(s_idle_level, LV_ALIGN_CENTER, 0, -92);
+
+    static const air_metric_t orden[9] = {
+        AIR_CO2,  AIR_TEMP, AIR_HUM,
+        AIR_PM1,  AIR_PM25, AIR_PM4,
+        AIR_PM10, AIR_VOC,  AIR_NOX,
+    };
+    for (int i = 0; i < 9; i++) {
+        const int dx = (i % 3 - 1) * 112;
+        // Filas cada 64 px, no 72: con 72 la ultima chocaba con el indicador
+        // de bateria, que vive a y=+148.
+        const int dy = -40 + (i / 3) * 64;
+        lv_obj_t *name = make_label(s_idle_panel, &lv_font_montserrat_14, 0x64748b);
+        lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(name, air_metric_label(orden[i]));
+        lv_obj_align(name, LV_ALIGN_CENTER, dx, dy);
+
+        s_idle_val[orden[i]] = make_label(s_idle_panel, &lv_font_montserrat_22, 0xffffff);
+        lv_obj_set_style_text_align(s_idle_val[orden[i]], LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(s_idle_val[orden[i]], LV_ALIGN_CENTER, dx, dy + 24);
+    }
+}
+
 static void build_chrome(lv_obj_t *scr)
 {
     // Hora y estado de red DENTRO del anillo, no encima: es lo que permite
@@ -398,7 +442,6 @@ static void on_tile_change(lv_event_t *e)
         if (lv_obj_get_child(s_tv, c) == act) { s_cur_col = c; break; }
     }
     update_dots();
-    s_dwell_s = 0;
 }
 
 static void on_activity(lv_event_t *e)
@@ -456,6 +499,7 @@ void ui_init(air_history_t *hist, const ui_config_t *cfg,
         s_cols = 1;
     }
 
+    build_idle(scr);
     build_chrome(scr);
     layout_dots();
     update_dots();
@@ -466,6 +510,19 @@ void ui_update(const air_sample_t *s)
 {
     s_last = *s;
     char buf[48], buf2[16];
+
+    if (s_idle_panel) {
+        const air_level_t glob = air_overall(s);
+        lv_label_set_text(s_idle_level, air_level_text(glob));
+        lv_obj_set_style_text_color(s_idle_level, col(air_level_color(glob)), 0);
+        for (int m = 0; m < AIR_METRIC_COUNT; m++) {
+            if (!s_idle_val[m]) continue;
+            fmt_value(buf2, sizeof(buf2), (air_metric_t)m, s->v[m]);
+            lv_label_set_text(s_idle_val[m], buf2);
+            lv_obj_set_style_text_color(s_idle_val[m],
+                col(air_level_color(air_level((air_metric_t)m, s->v[m]))), 0);
+        }
+    }
 
     for (int p = 0; p < UI_PAGE_COUNT; p++) {
         if (s_page_col[p] < 0) continue;
@@ -599,12 +656,15 @@ void ui_set_on_battery(bool on_battery)
 void ui_wake(void)
 {
     s_idle_s = 0;
+    if (s_idle_shown) {
+        s_idle_shown = false;
+        lv_obj_add_flag(s_idle_panel, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_tv, LV_OBJ_FLAG_HIDDEN); // vuelve la pagina donde estabas
+    }
     if (s_dimmed) {
         s_dimmed = false;
         if (s_set_brightness) s_set_brightness(s_cfg.brightness);
     }
-    // un toque tambien pausa la rotacion automatica durante un ciclo completo
-    s_dwell_s = 0;
 }
 
 void ui_tick_1s(void)
@@ -623,15 +683,15 @@ void ui_tick_1s(void)
         if (!s_dimmed && s_idle_s >= timeout) {
             s_dimmed = true;
             if (s_set_brightness) s_set_brightness(dim_to);
+            // Con bateria la pantalla se apaga entera, asi que no tiene
+            // sentido dibujar el resumen; enchufado se atenua y lo muestra.
+            if (!s_on_battery && s_idle_panel) {
+                s_idle_shown = true;
+                lv_obj_add_flag(s_tv, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(s_idle_panel, LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
-
-    if (s_cfg.page_dwell_s && s_cols > 1) {
-        if (++s_dwell_s >= s_cfg.page_dwell_s) {
-            s_dwell_s = 0;
-            s_cur_col = (s_cur_col + 1) % s_cols;
-            lv_tileview_set_tile_by_index(s_tv, s_cur_col, 0, LV_ANIM_ON);
-            update_dots();
-        }
-    }
+    // Sin rotacion automatica: las paginas se pasan a dedo. Lo que gira solo
+    // cuesta mas de lo que aporta, porque nunca esta la que quieres mirar.
 }

@@ -108,4 +108,5 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
    los dos `#if` de `display.c` ya están emparejados, cambiar solo la macro).
 2. Medir el offset real de temperatura contra un termómetro y meterlo en el
    panel web.
-3. Configurar WiFi y MQTT por el portal y comprobar el descubrimiento en HA.
+3. Medir la autonomía real con batería (el perfil se activa solo al quitar
+   el USB; consultar `/api/state` por WiFi, que sin USB no hay puerto serie).

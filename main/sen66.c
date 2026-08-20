@@ -11,6 +11,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 
 static const char *TAG = "sen66";
@@ -42,6 +43,19 @@ static i2c_master_bus_handle_t s_bus;
 static i2c_master_dev_handle_t s_dev;
 static int s_sda = -1, s_scl = -1;
 static bool s_present;
+
+// El protocolo del SEN66 es escribir-esperar-leer, y el candado del driver
+// I2C solo cubre cada paso suelto. Con la tarea del sensor sondeando cada
+// 500 ms y el servidor web pidiendo el estado, una se colaba entre el write y
+// el read de la otra y las respuestas se cruzaban: /api/state llegaba a decir
+// "sin respuesta" con lecturas de hace un segundo al lado.
+static SemaphoreHandle_t s_mutex;
+
+#define SEN66_LOCK()   do { if (s_mutex) xSemaphoreTake(s_mutex, portMAX_DELAY); } while (0)
+#define SEN66_UNLOCK() do { if (s_mutex) xSemaphoreGive(s_mutex); } while (0)
+
+// Envuelve una llamada que use el bus para que sea atomica frente a otras tareas.
+#define SEN66_GUARDED(expr) ({ SEN66_LOCK(); esp_err_t _e = (expr); SEN66_UNLOCK(); _e; })
 
 // ------------------------------------------------------------------ CRC-8
 // Polinomio 0x31, inicio 0xFF, sin reflejar (Sensirion)
@@ -194,17 +208,20 @@ static void bus_close(void)
     if (s_bus) { i2c_del_master_bus(s_bus); s_bus = NULL; }
 }
 
+static esp_err_t sen66_product_name_unlocked(char *buf, size_t len);
+
 // Comprueba que quien contesta en 0x6B es de verdad un SEN6x y no otra cosa.
 static bool looks_like_sen66(void)
 {
     char name[32] = {0};
-    if (sen66_product_name(name, sizeof(name)) != ESP_OK) return false;
+    if (sen66_product_name_unlocked(name, sizeof(name)) != ESP_OK) return false;
     ESP_LOGI(TAG, "producto: '%s'", name);
     return strncmp(name, "SEN6", 4) == 0;
 }
 
 esp_err_t sen66_init(bool autodetect)
 {
+    if (!s_mutex) s_mutex = xSemaphoreCreateMutex();
     static const int candidates[][2] = BOARD_SEN66_CANDIDATES;
     const int n = autodetect ? (int)(sizeof(candidates) / sizeof(candidates[0])) : 1;
 
@@ -262,21 +279,21 @@ esp_err_t sen66_set_temp_offset(float celsius)
     const uint16_t args[4] = {
         (uint16_t)(int16_t)lrintf(celsius * 200.0f), 0, 0, 0,
     };
-    return cmd_write(CMD_TEMP_OFFSET, args, 4, 20);
+    return SEN66_GUARDED(cmd_write(CMD_TEMP_OFFSET, args, 4, 20));
 }
 
 esp_err_t sen66_set_altitude(uint16_t meters)
 {
-    return cmd_write(CMD_SENSOR_ALTITUDE, &meters, 1, 20);
+    return SEN66_GUARDED(cmd_write(CMD_SENSOR_ALTITUDE, &meters, 1, 20));
 }
 
 esp_err_t sen66_set_co2_asc(bool enabled)
 {
     const uint16_t v = enabled ? 1 : 0;
-    return cmd_write(CMD_CO2_ASC, &v, 1, 20);
+    return SEN66_GUARDED(cmd_write(CMD_CO2_ASC, &v, 1, 20));
 }
 
-esp_err_t sen66_get_voc_state(uint8_t state[SEN66_VOC_STATE_LEN])
+static esp_err_t sen66_get_voc_state_unlocked(uint8_t state[SEN66_VOC_STATE_LEN])
 {
     uint16_t w[SEN66_VOC_STATE_LEN / 2];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_VOC_ALGO_STATE, 20, w, SEN66_VOC_STATE_LEN / 2),
@@ -295,18 +312,18 @@ esp_err_t sen66_set_voc_state(const uint8_t state[SEN66_VOC_STATE_LEN])
         w[i] = (uint16_t)((state[i * 2] << 8) | state[i * 2 + 1]);
     }
     // Solo surte efecto con el sensor parado; en marcha se ignora en silencio.
-    return cmd_write(CMD_VOC_ALGO_STATE, w, SEN66_VOC_STATE_LEN / 2, 20);
+    return SEN66_GUARDED(cmd_write(CMD_VOC_ALGO_STATE, w, SEN66_VOC_STATE_LEN / 2, 20));
 }
 
 // -------------------------------------------------------------- medicion
 esp_err_t sen66_start(void)
 {
-    return cmd_write(CMD_START_MEASUREMENT, NULL, 0, 50);
+    return SEN66_GUARDED(cmd_write(CMD_START_MEASUREMENT, NULL, 0, 50));
 }
 
 esp_err_t sen66_stop(void)
 {
-    return cmd_write(CMD_STOP_MEASUREMENT, NULL, 0, 1400);
+    return SEN66_GUARDED(cmd_write(CMD_STOP_MEASUREMENT, NULL, 0, 1400));
 }
 
 static float scaled_u16(uint16_t raw, float div)
@@ -320,7 +337,7 @@ static float scaled_i16(uint16_t raw, float div)
     return (v == UNKNOWN_I16) ? NAN : (float)v / div;
 }
 
-esp_err_t sen66_read(air_sample_t *out)
+static esp_err_t sen66_read_unlocked(air_sample_t *out)
 {
     uint16_t ready[1];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_GET_DATA_READY, 20, ready, 1), TAG, "data ready");
@@ -345,7 +362,7 @@ esp_err_t sen66_read(air_sample_t *out)
 }
 
 // ------------------------------------------------------------ informacion
-esp_err_t sen66_serial(char *buf, size_t len)
+static esp_err_t sen66_serial_unlocked(char *buf, size_t len)
 {
     uint16_t w[16];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_SERIAL_NUMBER, 20, w, 16), TAG, "serial");
@@ -353,7 +370,7 @@ esp_err_t sen66_serial(char *buf, size_t len)
     return ESP_OK;
 }
 
-esp_err_t sen66_product_name(char *buf, size_t len)
+static esp_err_t sen66_product_name_unlocked(char *buf, size_t len)
 {
     uint16_t w[16];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_PRODUCT_NAME, 20, w, 16), TAG, "nombre");
@@ -361,7 +378,7 @@ esp_err_t sen66_product_name(char *buf, size_t len)
     return ESP_OK;
 }
 
-esp_err_t sen66_version(uint8_t *major, uint8_t *minor)
+static esp_err_t sen66_version_unlocked(uint8_t *major, uint8_t *minor)
 {
     uint16_t w[1];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_GET_VERSION, 20, w, 1), TAG, "version");
@@ -370,7 +387,7 @@ esp_err_t sen66_version(uint8_t *major, uint8_t *minor)
     return ESP_OK;
 }
 
-esp_err_t sen66_read_status(uint32_t *status)
+static esp_err_t sen66_read_status_unlocked(uint32_t *status)
 {
     uint16_t w[2];
     ESP_RETURN_ON_ERROR(cmd_query(CMD_READ_STATUS, 20, w, 2), TAG, "status");
@@ -380,15 +397,15 @@ esp_err_t sen66_read_status(uint32_t *status)
 
 esp_err_t sen66_reset(void)
 {
-    return cmd_write(CMD_DEVICE_RESET, NULL, 0, 1200);
+    return SEN66_GUARDED(cmd_write(CMD_DEVICE_RESET, NULL, 0, 1200));
 }
 
 esp_err_t sen66_fan_clean(void)
 {
-    return cmd_write(CMD_FAN_CLEAN, NULL, 0, 20);
+    return SEN66_GUARDED(cmd_write(CMD_FAN_CLEAN, NULL, 0, 20));
 }
 
-esp_err_t sen66_forced_co2_recal(uint16_t target_ppm, uint16_t *correction)
+static esp_err_t sen66_forced_co2_recal_unlocked(uint16_t target_ppm, uint16_t *correction)
 {
     ESP_RETURN_ON_ERROR(cmd_write(CMD_FORCED_CO2_RECAL, &target_ppm, 1, 500),
                         TAG, "recal");
@@ -420,3 +437,14 @@ void sen66_status_text(uint32_t status, char *buf, size_t len)
     }
     if (!n) snprintf(buf, len, "OK");
 }
+
+// ---------------------------------------------------------- envoltorios
+// Todo lo que toca el bus pasa por aqui: una secuencia escribir-esperar-leer
+// tiene que ser atomica frente a las demas tareas.
+esp_err_t sen66_read(air_sample_t *out) { return SEN66_GUARDED(sen66_read_unlocked(out)); }
+esp_err_t sen66_serial(char *buf, size_t len) { return SEN66_GUARDED(sen66_serial_unlocked(buf, len)); }
+esp_err_t sen66_product_name(char *buf, size_t len) { return SEN66_GUARDED(sen66_product_name_unlocked(buf, len)); }
+esp_err_t sen66_version(uint8_t *ma, uint8_t *mi) { return SEN66_GUARDED(sen66_version_unlocked(ma, mi)); }
+esp_err_t sen66_read_status(uint32_t *st) { return SEN66_GUARDED(sen66_read_status_unlocked(st)); }
+esp_err_t sen66_get_voc_state(uint8_t st[SEN66_VOC_STATE_LEN]) { return SEN66_GUARDED(sen66_get_voc_state_unlocked(st)); }
+esp_err_t sen66_forced_co2_recal(uint16_t ppm, uint16_t *corr) { return SEN66_GUARDED(sen66_forced_co2_recal_unlocked(ppm, corr)); }

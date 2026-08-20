@@ -153,12 +153,12 @@ int main(int argc, char **argv)
     }
 
     const ui_config_t cfg = {
-        .page_dwell_s = shots_dir ? 3 : 12,
+        
         .pages_mask = 0x1F,
         .chart_span_min = 60,
         .brightness = 200,
         .night_brightness = 20,
-        .screen_timeout_s = 0,
+        .screen_timeout_s = shots_dir ? 6 : 20, // corto en capturas, para ver el reposo
     };
     ui_init(&s_hist, &cfg, NULL);
 
