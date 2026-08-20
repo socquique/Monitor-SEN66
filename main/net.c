@@ -9,6 +9,7 @@
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_netif_sntp.h"
+#include "esp_timer.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -28,8 +29,15 @@ static bool s_portal_up;
 static void (*s_time_cb)(void);
 static esp_netif_t *s_sta_netif;
 static esp_netif_t *s_ap_netif;
+static esp_timer_handle_t s_retry_timer;
 
 static void start_portal(void);
+
+static void retry_connect_cb(void *arg)
+{
+    (void)arg;
+    esp_wifi_connect();
+}
 
 static void on_time_sync(struct timeval *tv)
 {
@@ -61,10 +69,13 @@ static void wifi_event(void *arg, esp_event_base_t base, int32_t id, void *data)
             ESP_LOGW(TAG, "%d fallos seguidos: abro el portal de configuracion", s_fails);
             start_portal();
         }
-        // Espera creciente hasta 10 s para no machacar el router ni la radio
+        // Espera creciente hasta 10 s para no machacar el router ni la radio.
+        // Con un temporizador y NO con vTaskDelay: esto corre en la tarea del
+        // bucle de eventos, y dormirla retrasaria el GOT_IP y los eventos MQTT.
         int wait_ms = 500 * (s_fails < 20 ? s_fails : 20);
-        vTaskDelay(pdMS_TO_TICKS(wait_ms > 10000 ? 10000 : wait_ms));
-        esp_wifi_connect();
+        if (wait_ms > 10000) wait_ms = 10000;
+        esp_timer_stop(s_retry_timer);
+        esp_timer_start_once(s_retry_timer, (uint64_t)wait_ms * 1000);
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         const ip_event_got_ip_t *e = (const ip_event_got_ip_t *)data;
         snprintf(s_ip, sizeof(s_ip), IPSTR, IP2STR(&e->ip_info.ip));
@@ -90,6 +101,12 @@ esp_err_t net_init(void)
                                                             wifi_event, NULL, NULL),
                         TAG, "ev ip");
 
+    const esp_timer_create_args_t retry_args = {
+        .callback = retry_connect_cb,
+        .name = "wifi_retry",
+    };
+    ESP_RETURN_ON_ERROR(esp_timer_create(&retry_args, &s_retry_timer), TAG, "timer");
+
     uint8_t mac[6];
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
     snprintf(s_dev_id, sizeof(s_dev_id), "sen66-%02x%02x%02x", mac[3], mac[4], mac[5]);
@@ -113,11 +130,22 @@ static void start_portal(void)
     ap.ap.max_connection = 3;
     ap.ap.authmode = WIFI_AUTH_OPEN;
 
-    wifi_mode_t mode;
+    // Conservar la estacion si ya estaba levantada (portal de rescate tras
+    // varios fallos); si no, solo AP.
+    wifi_mode_t mode = WIFI_MODE_NULL;
     esp_wifi_get_mode(&mode);
-    esp_wifi_set_mode(mode == WIFI_MODE_STA ? WIFI_MODE_APSTA : WIFI_MODE_AP);
-    esp_wifi_set_config(WIFI_IF_AP, &ap);
-    if (mode == WIFI_MODE_NULL) esp_wifi_start();
+    const wifi_mode_t want = (mode == WIFI_MODE_STA || mode == WIFI_MODE_APSTA)
+                             ? WIFI_MODE_APSTA : WIFI_MODE_AP;
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_mode(want));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_config(WIFI_IF_AP, &ap));
+
+    // Arrancar SIEMPRE: si ya estaba en marcha esto es un no-op. Antes se
+    // llamaba solo con el modo en NULL, pero net_start() ya lo habia puesto
+    // en AP, asi que la radio no llegaba a arrancar y no habia portal.
+    const esp_err_t err = esp_wifi_start();
+    if (err != ESP_OK && err != ESP_ERR_WIFI_CONN) {
+        ESP_LOGW(TAG, "esp_wifi_start en el portal: %s", esp_err_to_name(err));
+    }
 
     s_portal_up = true;
     if (s_state != NET_CONNECTED) s_state = NET_PORTAL;
@@ -131,8 +159,7 @@ esp_err_t net_start(void)
 
     if (cfg->wifi_ssid[0] == '\0') {
         ESP_LOGW(TAG, "sin red configurada");
-        ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_AP), TAG, "modo ap");
-        start_portal();
+        start_portal(); // pone el modo y arranca la radio
         return ESP_OK;
     }
 
