@@ -19,6 +19,8 @@ static const char *TAG = "display";
 static lv_display_t *s_disp;
 static i2c_master_bus_handle_t s_i2c_bus;
 static esp_lcd_panel_io_handle_t s_panel_io;
+static esp_lcd_panel_handle_t s_panel;
+static bool s_disp_on = true;
 
 // Los AMOLED QSPI (CO5300) exigen ventanas de volcado alineadas a 2 px; con
 // bordes impares el panel pinta basura (lineas verdes) en los limites del
@@ -183,6 +185,7 @@ esp_err_t display_init(void)
             .swap_bytes = true, // el QSPI AMOLED espera RGB565 big-endian
         },
     };
+    s_panel = panel;
     s_disp = lvgl_port_add_disp(&disp_cfg);
     ESP_RETURN_ON_FALSE(s_disp, ESP_FAIL, TAG, "add disp");
 
@@ -203,5 +206,23 @@ i2c_master_bus_handle_t display_i2c_bus(void) { return s_i2c_bus; }
 void display_set_brightness(uint8_t level)
 {
     if (!s_panel_io) return;
+
+    // En este AMOLED el brillo 0 es el MINIMO, no apagado: el panel sigue
+    // emitiendo y de noche se ve perfectamente. Para apagarlo de verdad hay
+    // que mandarle el comando de display off, que en AMOLED apaga los pixeles
+    // y es donde esta el ahorro. La GRAM se conserva, asi que al volver
+    // aparece la misma imagen sin repintar.
+    if (level == 0) {
+        if (s_disp_on && s_panel) {
+            esp_lcd_panel_disp_on_off(s_panel, false);
+            s_disp_on = false;
+        }
+        return;
+    }
+
+    if (!s_disp_on && s_panel) {
+        esp_lcd_panel_disp_on_off(s_panel, true);
+        s_disp_on = true;
+    }
     esp_lcd_panel_io_tx_param(s_panel_io, LCD_CMD_BRIGHTNESS, (uint8_t[]){level}, 1);
 }
