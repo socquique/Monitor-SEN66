@@ -24,6 +24,7 @@ static const char *TAG = "sen66";
 #define CMD_READ_VALUES         0x0300
 #define CMD_FAN_CLEAN           0x5607
 #define CMD_TEMP_OFFSET         0x60B2
+#define CMD_VOC_ALGO_STATE      0x6181
 #define CMD_FORCED_CO2_RECAL    0x6707
 #define CMD_CO2_ASC             0x6711
 #define CMD_SENSOR_ALTITUDE     0x6736
@@ -244,6 +245,12 @@ esp_err_t sen66_init(bool autodetect)
     return ESP_ERR_NOT_FOUND;
 }
 
+void sen66_deinit(void)
+{
+    bus_close();
+    s_present = false;
+}
+
 void sen66_pins(int *sda, int *scl) { *sda = s_sda; *scl = s_scl; }
 bool sen66_present(void) { return s_present; }
 
@@ -267,6 +274,28 @@ esp_err_t sen66_set_co2_asc(bool enabled)
 {
     const uint16_t v = enabled ? 1 : 0;
     return cmd_write(CMD_CO2_ASC, &v, 1, 20);
+}
+
+esp_err_t sen66_get_voc_state(uint8_t state[SEN66_VOC_STATE_LEN])
+{
+    uint16_t w[SEN66_VOC_STATE_LEN / 2];
+    ESP_RETURN_ON_ERROR(cmd_query(CMD_VOC_ALGO_STATE, 20, w, SEN66_VOC_STATE_LEN / 2),
+                        TAG, "get voc state");
+    for (int i = 0; i < SEN66_VOC_STATE_LEN / 2; i++) {
+        state[i * 2]     = (uint8_t)(w[i] >> 8);
+        state[i * 2 + 1] = (uint8_t)(w[i] & 0xFF);
+    }
+    return ESP_OK;
+}
+
+esp_err_t sen66_set_voc_state(const uint8_t state[SEN66_VOC_STATE_LEN])
+{
+    uint16_t w[SEN66_VOC_STATE_LEN / 2];
+    for (int i = 0; i < SEN66_VOC_STATE_LEN / 2; i++) {
+        w[i] = (uint16_t)((state[i * 2] << 8) | state[i * 2 + 1]);
+    }
+    // Solo surte efecto con el sensor parado; en marcha se ignora en silencio.
+    return cmd_write(CMD_VOC_ALGO_STATE, w, SEN66_VOC_STATE_LEN / 2, 20);
 }
 
 // -------------------------------------------------------------- medicion

@@ -41,6 +41,12 @@ typedef struct {
 esp_err_t settings_load(void);
 esp_err_t settings_save(void);
 settings_t *settings_get(void);
+
+// Estado del algoritmo VOC del sensor, en su propia clave: asi guardar los
+// ajustes no lo pisa ni al reves. Devuelve ESP_ERR_NVS_NOT_FOUND si no hay
+// nada guardado todavia.
+esp_err_t settings_save_voc_state(const void *state, size_t len);
+esp_err_t settings_load_voc_state(void *state, size_t len);
 void settings_defaults(settings_t *s);
 
 static inline bool settings_page_visible(const settings_t *s, int page)

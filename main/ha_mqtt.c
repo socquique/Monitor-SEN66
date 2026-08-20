@@ -14,6 +14,7 @@ static const char *TAG = "ha_mqtt";
 
 static esp_mqtt_client_handle_t s_client;
 static bool s_connected;
+static bool s_available = true;
 static char s_state_topic[64];
 static char s_avty_topic[64];
 
@@ -141,7 +142,10 @@ static void mqtt_event(void *arg, esp_event_base_t base, int32_t id, void *data)
     case MQTT_EVENT_CONNECTED:
         s_connected = true;
         ESP_LOGI(TAG, "conectado al broker");
-        esp_mqtt_client_publish(s_client, s_avty_topic, "online", 0, 1, 1);
+        // Reafirmamos lo que sabemos del sensor, que puede estar caido justo
+        // cuando el broker vuelve.
+        esp_mqtt_client_publish(s_client, s_avty_topic,
+                                s_available ? "online" : "offline", 0, 1, 1);
         publish_discovery();
         break;
     case MQTT_EVENT_DISCONNECTED:
@@ -206,9 +210,20 @@ void ha_mqtt_stop(void)
 
 bool ha_mqtt_connected(void) { return s_connected; }
 
+void ha_mqtt_set_available(bool available)
+{
+    if (available == s_available) return;
+    s_available = available;
+    ESP_LOGW(TAG, "disponibilidad -> %s", available ? "online" : "offline");
+    if (s_client && s_connected) {
+        esp_mqtt_client_publish(s_client, s_avty_topic,
+                                available ? "online" : "offline", 0, 1, 1);
+    }
+}
+
 void ha_mqtt_publish(const air_sample_t *s)
 {
-    if (!s_client || !s_connected || !s->valid) return;
+    if (!s_client || !s_connected || !s->valid || !s_available) return;
 
     char json[420];
     int n = snprintf(json, sizeof(json), "{");

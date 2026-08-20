@@ -30,6 +30,8 @@
 // board.h y `autodetect` es true, barre los pares candidatos y se queda con
 // el que conteste (avisando por consola de cual es, para fijarlo en board.h).
 esp_err_t sen66_init(bool autodetect);
+// Suelta el bus para poder volver a levantarlo (recuperacion tras fallos).
+void sen66_deinit(void);
 void sen66_pins(int *sda, int *scl);
 bool sen66_present(void);
 
@@ -37,6 +39,18 @@ bool sen66_present(void);
 esp_err_t sen66_set_temp_offset(float celsius);
 esp_err_t sen66_set_altitude(uint16_t meters);
 esp_err_t sen66_set_co2_asc(bool enabled);
+
+// Estado del algoritmo VOC (8 bytes). Los indices VOC no son una medida
+// absoluta: el sensor aprende el ambiente durante horas y luego dice si esto
+// esta mejor o peor de lo habitual. Guardar y restaurar ese estado evita que
+// cada reinicio tire por la borda el aprendizaje.
+//
+// OJO al orden: leerlo se puede en cualquier momento, pero ESCRIBIRLO solo
+// funciona con el sensor PARADO, y se aplica al arrancar la siguiente
+// medicion. Restaurar siempre ANTES de sen66_start().
+#define SEN66_VOC_STATE_LEN 8
+esp_err_t sen66_get_voc_state(uint8_t state[SEN66_VOC_STATE_LEN]);
+esp_err_t sen66_set_voc_state(const uint8_t state[SEN66_VOC_STATE_LEN]);
 
 esp_err_t sen66_start(void);
 esp_err_t sen66_stop(void);

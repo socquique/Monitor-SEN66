@@ -43,12 +43,20 @@ static const char *TAG = "app";
 #define MQTT_PERIOD_S 10
 // Si pasa esto sin lectura buena, damos el sensor por perdido en pantalla.
 #define SAMPLE_STALE_S 15
+// Sin lectura buena en este tiempo damos el sensor por caido: dejamos de
+// publicar y lo anunciamos como no disponible.
+#define SENSOR_DEAD_S 60
+// Cada cuanto intentar levantarlo otra vez una vez caido.
+#define SENSOR_RETRY_S 30
+// Cada cuanto guardar el estado del algoritmo VOC.
+#define VOC_SAVE_PERIOD_S 3600
 
 static air_history_t *s_hist;
 static SemaphoreHandle_t s_lock;
 static air_sample_t s_sample;      // protegida por s_lock
 static int64_t s_last_read_us;
 static bool s_sensor_ok;
+static bool s_had_reading;   // ha llegado alguna lectura desde el arranque
 
 // ------------------------------------------------------------------- reloj
 // El RTC guarda UTC; la hora local se saca con la TZ de los ajustes. Asi
@@ -101,6 +109,35 @@ static void clock_to_rtc(void)
 }
 
 // ------------------------------------------------------------------ sensor
+// El indice VOC no es una medida absoluta: el sensor aprende el ambiente
+// durante horas. Sin esto, cada reinicio tira ese aprendizaje y los indices
+// no significan nada hasta pasado un buen rato.
+static void voc_state_restore(void)
+{
+    uint8_t st[SEN66_VOC_STATE_LEN];
+    if (settings_load_voc_state(st, sizeof(st)) != ESP_OK) {
+        ESP_LOGI(TAG, "sin estado VOC guardado: el sensor aprendera de cero");
+        return;
+    }
+    // Solo cala con el sensor parado, de ahi que esto vaya antes del start.
+    if (sen66_set_voc_state(st) == ESP_OK) {
+        ESP_LOGI(TAG, "estado del algoritmo VOC restaurado");
+    }
+}
+
+static void voc_state_save(void)
+{
+    uint8_t st[SEN66_VOC_STATE_LEN];
+    if (sen66_get_voc_state(st) != ESP_OK) return;
+    const int64_t t0 = esp_timer_get_time();
+    if (settings_save_voc_state(st, sizeof(st)) == ESP_OK) {
+        // Medimos lo que cuesta: escribir en NVS bloquea, y queriamos saber
+        // si estos 8 bytes justifican la fama de congelar un segundo.
+        ESP_LOGI(TAG, "estado VOC guardado (%lld ms)",
+                 (esp_timer_get_time() - t0) / 1000);
+    }
+}
+
 static void sensor_configure(void)
 {
     const settings_t *cfg = settings_get();
@@ -121,10 +158,28 @@ static void sensor_configure(void)
     sen66_set_co2_asc(cfg->co2_asc);
 }
 
+// Reinicia el bus y el sensor. Un tropiezo del I2C dejaba el aparato mudo
+// hasta el siguiente reinicio a mano.
+static void sensor_recover(void)
+{
+    ESP_LOGW(TAG, "el sensor lleva %d s sin responder: reiniciando el bus", SENSOR_DEAD_S);
+    sen66_deinit();
+    vTaskDelay(pdMS_TO_TICKS(200));
+    if (sen66_init(false) != ESP_OK) return;
+    sensor_configure();
+    voc_state_restore();
+    if (sen66_start() != ESP_OK) { sen66_deinit(); return; }
+    s_sensor_ok = true;
+    ESP_LOGI(TAG, "sensor recuperado");
+}
+
 static void sensor_task(void *arg)
 {
     (void)arg;
     int64_t next_mqtt_us = 0;
+    int64_t next_retry_us = 0;
+    int64_t next_voc_us = esp_timer_get_time() + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
+    int64_t alive_since_us = esp_timer_get_time();
 
     for (;;) {
         if (s_sensor_ok) {
@@ -134,6 +189,7 @@ static void sensor_task(void *arg)
 
             if (err == ESP_OK) {
                 s_last_read_us = esp_timer_get_time();
+                s_had_reading = true;
                 xSemaphoreTake(s_lock, portMAX_DELAY);
                 s_sample = fresh;
                 xSemaphoreGive(s_lock);
@@ -144,7 +200,25 @@ static void sensor_task(void *arg)
         }
 
         const int64_t now = esp_timer_get_time();
-        if (now >= next_mqtt_us) {
+
+        // Referencia para la frescura: la ultima lectura buena o, si aun no ha
+        // habido ninguna, el arranque de la tarea.
+        const int64_t ref = s_last_read_us ? s_last_read_us : alive_since_us;
+        const bool vivo = s_sensor_ok && (now - ref) < (int64_t)SENSOR_DEAD_S * 1000000;
+
+        ha_mqtt_set_available(vivo);
+        if (!vivo && now >= next_retry_us) {
+            next_retry_us = now + (int64_t)SENSOR_RETRY_S * 1000000;
+            sensor_recover();
+            alive_since_us = esp_timer_get_time();
+        }
+
+        if (vivo && now >= next_voc_us) {
+            next_voc_us = now + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
+            voc_state_save();
+        }
+
+        if (vivo && now >= next_mqtt_us) {
             next_mqtt_us = now + (int64_t)MQTT_PERIOD_S * 1000000;
             air_sample_t snap;
             xSemaphoreTake(s_lock, portMAX_DELAY);
@@ -177,8 +251,12 @@ static void status_message(char *buf, size_t len)
 
     if (!s_sensor_ok) {
         snprintf(buf, len, "sin sensor - revisa el I2C");
-    } else if (age > SAMPLE_STALE_S) {
+    } else if (!s_had_reading) {
         snprintf(buf, len, "sensor calentando");
+    } else if (age > SAMPLE_STALE_S) {
+        // Antes esto tambien decia "calentando", que a las cinco horas de
+        // funcionamiento es mentira.
+        snprintf(buf, len, "sensor no responde");
     } else if (net_state() == NET_PORTAL) {
         snprintf(buf, len, "configura en %s", net_ap_ssid());
     } else {
@@ -240,6 +318,7 @@ void app_main(void)
     s_sensor_ok = (sen66_init(true) == ESP_OK);
     if (s_sensor_ok) {
         sensor_configure();
+        voc_state_restore();
         if (sen66_start() != ESP_OK) {
             ESP_LOGE(TAG, "no arranco la medicion");
             s_sensor_ok = false;

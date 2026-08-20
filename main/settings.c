@@ -80,3 +80,26 @@ esp_err_t settings_save(void)
 }
 
 settings_t *settings_get(void) { return &s_cfg; }
+
+#define NVS_KEY_VOC "voc_state"
+
+esp_err_t settings_save_voc_state(const void *state, size_t len)
+{
+    nvs_handle_t h;
+    ESP_RETURN_ON_ERROR(nvs_open(NVS_NS, NVS_READWRITE, &h), TAG, "open");
+    esp_err_t err = nvs_set_blob(h, NVS_KEY_VOC, state, len);
+    if (err == ESP_OK) err = nvs_commit(h);
+    nvs_close(h);
+    return err;
+}
+
+esp_err_t settings_load_voc_state(void *state, size_t len)
+{
+    nvs_handle_t h;
+    ESP_RETURN_ON_ERROR(nvs_open(NVS_NS, NVS_READONLY, &h), TAG, "open");
+    size_t got = len;
+    esp_err_t err = nvs_get_blob(h, NVS_KEY_VOC, state, &got);
+    nvs_close(h);
+    if (err == ESP_OK && got != len) return ESP_ERR_INVALID_SIZE;
+    return err;
+}
