@@ -662,6 +662,10 @@ void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown)
 
 void ui_wake(void)
 {
+    // Marcar actividad en LVGL: si despertamos por codigo (cambio de perfil)
+    // y no por un dedo, su contador seguiria alto y se apagaria otra vez en
+    // el siguiente tick.
+    lv_display_trigger_activity(NULL);
     s_idle_s = 0;
     if (s_idle_shown) {
         s_idle_shown = false;
@@ -676,7 +680,15 @@ void ui_wake(void)
 
 void ui_tick_1s(void)
 {
-    // Atenuado por inactividad (en AMOLED bajar el brillo ahorra de verdad).
+    // La inactividad la lleva LVGL, no un contador nuestro. El motivo: el
+    // evento de pulsacion se escuchaba en el objeto pantalla, pero el
+    // tileview la cubre entera y se queda el toque, y en LVGL los eventos NO
+    // suben al padre salvo que se pida. Resultado: la pantalla se apagaba y
+    // ya no habia forma de despertarla tocando.
+    const uint32_t inactivo_ms = lv_display_get_inactive_time(NULL);
+    s_idle_s = inactivo_ms / 1000;
+
+    // Atenuado por inactividad (en AMOLED apagar ahorra de verdad).
     // Con bateria se apaga entera, y sin esperar a lo configurado: el valor
     // por defecto es 0 (nunca), que enchufado esta bien y en bateria no.
     const uint32_t timeout = s_on_battery
@@ -685,18 +697,17 @@ void ui_tick_1s(void)
         : s_cfg.screen_timeout_s;
     const uint8_t dim_to = s_on_battery ? 0 : s_cfg.night_brightness;
 
-    if (timeout) {
-        s_idle_s++;
-        if (!s_dimmed && s_idle_s >= timeout) {
-            s_dimmed = true;
-            if (s_set_brightness) s_set_brightness(dim_to);
-            // Con bateria la pantalla se apaga entera, asi que no tiene
-            // sentido dibujar el resumen; enchufado se atenua y lo muestra.
-            if (!s_on_battery && s_idle_panel) {
-                s_idle_shown = true;
-                lv_obj_add_flag(s_tv, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_remove_flag(s_idle_panel, LV_OBJ_FLAG_HIDDEN);
-            }
+    if (s_dimmed && inactivo_ms < 1500) {
+        ui_wake(); // ha habido toque: encender y volver a la pagina de antes
+    } else if (timeout && !s_dimmed && s_idle_s >= timeout) {
+        s_dimmed = true;
+        if (s_set_brightness) s_set_brightness(dim_to);
+        // Con bateria la pantalla se apaga entera, asi que no tiene
+        // sentido dibujar el resumen; enchufado se atenua y lo muestra.
+        if (!s_on_battery && s_idle_panel) {
+            s_idle_shown = true;
+            lv_obj_add_flag(s_tv, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(s_idle_panel, LV_OBJ_FLAG_HIDDEN);
         }
     }
     // Sin rotacion automatica: las paginas se pasan a dedo. Lo que gira solo
