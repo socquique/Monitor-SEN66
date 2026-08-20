@@ -53,17 +53,18 @@ static const char *TAG = "app";
 // Cada cuanto guardar el estado del algoritmo VOC.
 #define VOC_SAVE_PERIOD_S 3600
 // --- Perfil de bateria ---------------------------------------------------
-// El ventilador del SEN66 es el mayor consumidor con diferencia, asi que con
-// bateria se mide a ratos: se arranca, se descartan los primeros segundos
-// mientras el ventilador coge velocidad, se toma la lectura y se para. El
-// ventilador acaba encendido ~10% del tiempo.
+// Al quitar el USB se aplican tres ahorros, y ninguno cuesta precision: la
+// pantalla se apaga (ver ui_set_on_battery), la radio duerme entre balizas y
+// se publica cada minuto en vez de cada diez.
 //
-// Precio a pagar, y no es gratis: los indices VOC y NOx de Sensirion suponen
-// muestreo a 1 Hz. Midiendo a rachas pierden precision. El CO2, la
-// temperatura, la humedad y las particulas no se ven afectados.
-#define BATT_WARMUP_S  15   // se descarta: el ventilador arrancando
-#define BATT_MEASURE_S 15   // ventana de lectura buena
-#define BATT_CYCLE_S   300  // periodo completo
+// Lo que NO se hace, y es deliberado: ciclar el ventilador del SEN66. Seria
+// el mayor ahorro con diferencia, pero el ventilador es lo que hace pasar el
+// aire por la camara: parado, las particulas no se miden en absoluto, el CO2
+// se entera tarde de los cambios, los indices VOC/NOx pierden su muestreo a
+// 1 Hz y la temperatura sube por autocalentamiento. Ademas el SEN5x SI tenia
+// un modo de bajo consumo oficial y el SEN66 no lo tiene, lo que invita a
+// pensar que en este modelo no lo recomiendan. Si algun dia se quiere, hay
+// que medir antes cuanto tardan las lecturas en estabilizarse tras arrancar.
 #define BATT_MQTT_PERIOD_S 60
 
 // Cada cuanto anotar la bateria en el log. Sirve para medir el consumo real:
@@ -222,8 +223,6 @@ static void sensor_task(void *arg)
     int64_t alive_since_us = esp_timer_get_time();
 
     bool on_battery = false;
-    bool midiendo = true;          // con bateria alterna; enchufado siempre true
-    int64_t fase_us = esp_timer_get_time();
 
     for (;;) {
         const int64_t now = esp_timer_get_time();
@@ -243,73 +242,41 @@ static void sensor_task(void *arg)
                     ESP_LOGW(TAG, "perfil de %s", on_battery ? "BATERIA" : "red");
                     net_set_power_save(on_battery);
                     ui_set_on_battery(on_battery);
-                    if (!on_battery && !midiendo) {
-                        // volver a continuo en cuanto se enchufa
-                        sen66_start();
-                        midiendo = true;
-                        fase_us = now;
-                        alive_since_us = now;
-                    }
                 }
             }
         }
 
-        // ---- ciclo de medida con bateria ----
-        if (on_battery && s_sensor_ok) {
-            const int64_t transcurrido = (now - fase_us) / 1000000;
-            if (midiendo && transcurrido >= BATT_WARMUP_S + BATT_MEASURE_S) {
-                sen66_stop();
-                midiendo = false;
-                fase_us = now;
-            } else if (!midiendo && transcurrido >= BATT_CYCLE_S - BATT_WARMUP_S - BATT_MEASURE_S) {
-                voc_state_save(); // aprovechamos que esta parado y toca guardar
-                sen66_start();
-                midiendo = true;
-                fase_us = now;
-                alive_since_us = now;
-            }
-        }
-
-        if (s_sensor_ok && midiendo) {
+        if (s_sensor_ok) {
             air_sample_t fresh;
             air_sample_clear(&fresh);
             const esp_err_t err = sen66_read(&fresh);
 
             if (err == ESP_OK) {
-                const bool util = !on_battery ||
-                                  ((now - fase_us) / 1000000) >= BATT_WARMUP_S;
-                if (util) {
-                    s_last_read_us = esp_timer_get_time();
-                    s_had_reading = true;
-                    alarm_check(fresh.v[AIR_CO2]);
-                    xSemaphoreTake(s_lock, portMAX_DELAY);
-                    s_sample = fresh;
-                    xSemaphoreGive(s_lock);
-                    air_history_push(s_hist, &fresh, time(NULL));
-                }
+                s_last_read_us = esp_timer_get_time();
+                s_had_reading = true;
+                alarm_check(fresh.v[AIR_CO2]);
+                xSemaphoreTake(s_lock, portMAX_DELAY);
+                s_sample = fresh;
+                xSemaphoreGive(s_lock);
+                air_history_push(s_hist, &fresh, time(NULL));
             } else if (err != ESP_ERR_NOT_FINISHED) {
                 ESP_LOGW(TAG, "lectura fallida: %s", esp_err_to_name(err));
             }
         }
 
         // Referencia para la frescura: la ultima lectura buena o, si aun no ha
-        // habido ninguna, el arranque de la fase. Con bateria el margen tiene
-        // que cubrir un ciclo entero, o el sensor parado a proposito se
-        // confundiria con un sensor averiado.
+        // habido ninguna, el arranque de la tarea.
         const int64_t ref = s_last_read_us ? s_last_read_us : alive_since_us;
-        const int muerto_s = on_battery ? BATT_CYCLE_S + 120 : SENSOR_DEAD_S;
-        const bool vivo = s_sensor_ok && (now - ref) < (int64_t)muerto_s * 1000000;
+        const bool vivo = s_sensor_ok && (now - ref) < (int64_t)SENSOR_DEAD_S * 1000000;
 
         ha_mqtt_set_available(vivo);
         if (!vivo && now >= next_retry_us) {
             next_retry_us = now + (int64_t)SENSOR_RETRY_S * 1000000;
             sensor_recover();
             alive_since_us = esp_timer_get_time();
-            midiendo = true;
-            fase_us = alive_since_us;
         }
 
-        if (vivo && !on_battery && now >= next_voc_us) {
+        if (vivo && now >= next_voc_us) {
             next_voc_us = now + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
             voc_state_save();
         }
