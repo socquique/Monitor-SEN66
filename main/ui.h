@@ -46,4 +46,7 @@ void ui_tick_1s(void);
 // mucho antes de lo configurado. Enchufado manda lo que diga el usuario.
 void ui_set_on_battery(bool on_battery);
 
+// Diagnostico: segundos de inactividad acumulados y si esta atenuada.
+void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown);
+
 void ui_wake(void);

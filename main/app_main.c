@@ -77,6 +77,11 @@ static air_sample_t s_sample;      // protegida por s_lock
 static int64_t s_last_read_us;
 static bool s_sensor_ok;
 static bool s_had_reading;   // ha llegado alguna lectura desde el arranque
+// Lo escribe la tarea del sensor y lo lee el temporizador de la UI. LVGL no
+// es seguro entre tareas: tocar sus objetos desde la tarea del sensor era
+// pedir problemas, y ademas cambiar el brillo desde alli compite con el
+// volcado de pantalla.
+static volatile bool s_on_battery;
 
 // ------------------------------------------------------------------- reloj
 // El RTC guarda UTC; la hora local se saca con la TZ de los ajustes. Asi
@@ -241,7 +246,7 @@ static void sensor_task(void *arg)
                     on_battery = sin_usb;
                     ESP_LOGW(TAG, "perfil de %s", on_battery ? "BATERIA" : "red");
                     net_set_power_save(on_battery);
-                    ui_set_on_battery(on_battery);
+                    s_on_battery = on_battery; // la UI lo recoge en su tick
                 }
             }
         }
@@ -359,6 +364,7 @@ static void ui_timer_cb(lv_timer_t *t)
     }
     ui_set_status(time_str, net_state() == NET_CONNECTED, ha_mqtt_connected(), msg,
                   bat_pct, charging);
+    ui_set_on_battery(s_on_battery);
     ui_tick_1s();
 }
 

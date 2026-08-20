@@ -653,6 +653,13 @@ void ui_set_on_battery(bool on_battery)
     ui_wake(); // al cambiar de perfil, encender y volver a contar
 }
 
+void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown)
+{
+    *idle_s = s_idle_s;
+    *dimmed = s_dimmed;
+    *idle_shown = s_idle_shown;
+}
+
 void ui_wake(void)
 {
     s_idle_s = 0;

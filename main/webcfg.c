@@ -4,6 +4,7 @@
 #include "net.h"
 #include "pmu_axp2101.h"
 #include "sound.h"
+#include "ui.h"
 #include "sen66.h"
 #include "settings.h"
 #include "version.h"
@@ -132,6 +133,13 @@ static esp_err_t h_state(httpd_req_t *req)
         settings_get()->device_name, APP_VERSION, net_device_id(),
         net_ip()[0] ? net_ip() : "sin IP", net_rssi(),
         ha_mqtt_connected() ? "true" : "false", sensor, (unsigned)s.age_s);
+
+    uint32_t idle_s = 0; bool dimmed = false, idle_shown = false;
+    ui_idle_debug(&idle_s, &dimmed, &idle_shown);
+    n += snprintf(json + n, sizeof(json) - n,
+                  "\"idle_s\":%u,\"dimmed\":%s,\"idle_view\":%s,",
+                  (unsigned)idle_s, dimmed ? "true" : "false",
+                  idle_shown ? "true" : "false");
 
     // Bateria: es lo unico que se puede consultar con el USB fuera, asi que
     // es la herramienta para medir el consumo real en descarga.
