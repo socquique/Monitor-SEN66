@@ -28,3 +28,15 @@ esp_err_t pmu_init(i2c_master_bus_handle_t bus);
 // parpadeos de brillo (lección de CapsuleRadar).
 esp_err_t pmu_read(pmu_status_t *out);
 bool pmu_available(void);
+
+// Diagnostico de carga: limite de corriente de entrada desde el USB y
+// corriente de carga de la bateria, en mA. Si la bateria carga despacio, lo
+// primero es mirar si alguno de los dos esta bajo.
+esp_err_t pmu_charge_limits(uint16_t *input_ma, uint16_t *charge_ma);
+
+// Corriente de carga de la bateria. El AXP2101 arranca con 200 mA de fabrica,
+// que con una celda de 1000 mAh son casi 5 horas para llenarla. Solo admite
+// los escalones de su tabla; se redondea hacia abajo al mas cercano.
+//
+// Regla: no pasar de 0,5C. Con 1000 mAh eso son 500 mA.
+esp_err_t pmu_set_charge_current(uint16_t ma);

@@ -17,6 +17,8 @@ static const char *TAG = "axp2101";
 #define REG_ADC_DATA0         0x34  // tension: H5 en 0x34, L8 en 0x35
 #define REG_BAT_DET_CTRL      0x68  // bit0: deteccion de bateria
 #define REG_BAT_PERCENT       0xA4
+#define REG_INPUT_CUR_LIMIT   0x16  // bits2:0 limite de entrada
+#define REG_ICC_CHG_SET       0x62  // bits4:0 corriente de carga
 
 #define CACHE_US (2 * 1000 * 1000)
 
@@ -69,6 +71,52 @@ esp_err_t pmu_init(i2c_master_bus_handle_t bus)
 }
 
 bool pmu_available(void) { return s_dev != NULL; }
+
+esp_err_t pmu_charge_limits(uint16_t *input_ma, uint16_t *charge_ma)
+{
+    if (!s_dev) return ESP_ERR_INVALID_STATE;
+
+    // Tablas del AXP2101 (via XPowersLib, que es lo que usa Waveshare).
+    static const uint16_t entrada[] = {100, 500, 900, 1000, 1500, 2000};
+    static const uint16_t carga[] = {
+        0, 0, 0, 0, 100, 125, 150, 175, 200, 300, 400, 500,
+        600, 700, 800, 900, 1000,
+    };
+
+    uint8_t v = 0;
+    ESP_RETURN_ON_ERROR(rd(REG_INPUT_CUR_LIMIT, &v), TAG, "in lim");
+    const uint8_t i = v & 0x07;
+    *input_ma = (i < sizeof(entrada) / sizeof(entrada[0])) ? entrada[i] : 0;
+
+    ESP_RETURN_ON_ERROR(rd(REG_ICC_CHG_SET, &v), TAG, "icc");
+    const uint8_t c = v & 0x1F;
+    *charge_ma = (c < sizeof(carga) / sizeof(carga[0])) ? carga[c] : 0;
+    return ESP_OK;
+}
+
+esp_err_t pmu_set_charge_current(uint16_t ma)
+{
+    if (!s_dev) return ESP_ERR_INVALID_STATE;
+
+    // Mismos escalones que la tabla de lectura; buscamos el mayor que no
+    // pase de lo pedido, nunca por encima.
+    static const struct { uint8_t code; uint16_t ma; } tabla[] = {
+        {4, 100}, {5, 125}, {6, 150}, {7, 175}, {8, 200}, {9, 300},
+        {10, 400}, {11, 500}, {12, 600}, {13, 700}, {14, 800}, {15, 900},
+        {16, 1000},
+    };
+    uint8_t code = tabla[0].code;
+    uint16_t elegido = tabla[0].ma;
+    for (size_t i = 0; i < sizeof(tabla) / sizeof(tabla[0]); i++) {
+        if (tabla[i].ma <= ma) { code = tabla[i].code; elegido = tabla[i].ma; }
+    }
+
+    uint8_t v = 0;
+    ESP_RETURN_ON_ERROR(rd(REG_ICC_CHG_SET, &v), TAG, "rd icc");
+    ESP_RETURN_ON_ERROR(wr(REG_ICC_CHG_SET, (uint8_t)((v & 0xE0) | code)), TAG, "wr icc");
+    ESP_LOGI(TAG, "corriente de carga a %u mA", elegido);
+    return ESP_OK;
+}
 
 esp_err_t pmu_read(pmu_status_t *out)
 {

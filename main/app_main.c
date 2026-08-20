@@ -417,6 +417,9 @@ void app_main(void)
 
     ESP_ERROR_CHECK(rtc_pcf85063_init(display_i2c_bus()));
     pmu_init(display_i2c_bus()); // sin ESP_ERROR_CHECK: sin PMU se sigue viviendo
+    // El AXP2101 arranca con 200 mA de carga, que con la celda de 1000 mAh de
+    // este aparato son casi cinco horas. 500 mA es medio C: rapido y suave.
+    pmu_set_charge_current(500);
     if (sound_init(display_i2c_bus()) == ESP_OK) {
         sound_set_volume(settings_get()->alarm_volume);
     }
@@ -457,6 +460,10 @@ void app_main(void)
             ESP_LOGI(TAG, "bateria: %s, %d%%, %u mV%s%s",
                      b.present ? "presente" : "ausente", b.percent, b.millivolts,
                      b.charging ? ", cargando" : "", b.vbus ? ", con USB" : "");
+        }
+        uint16_t in_ma = 0, chg_ma = 0;
+        if (pmu_charge_limits(&in_ma, &chg_ma) == ESP_OK) {
+            ESP_LOGI(TAG, "limites: entrada USB %u mA, carga %u mA", in_ma, chg_ma);
         }
     }
 
