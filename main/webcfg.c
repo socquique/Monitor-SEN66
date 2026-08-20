@@ -345,6 +345,10 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
         ESP_RETURN_ON_ERROR(httpd_register_uri_handler(s_server, &routes[i]),
                             TAG, "ruta %s", routes[i].uri);
     }
-    ESP_LOGI(TAG, "servidor web en http://%s/", net_ip()[0] ? net_ip() : "192.168.4.1");
+    // Sin IP todavia: arrancamos antes de que el DHCP conteste. Decir una
+    // direccion concreta aqui seria mentir (lo hacia: cantaba 192.168.4.1
+    // incluso conectado a la red de casa). La IP real la canta net.c en
+    // cuanto llega el GOT_IP; en el portal es siempre 192.168.4.1.
+    ESP_LOGI(TAG, "servidor web escuchando en el puerto %d", cfg.server_port);
     return ESP_OK;
 }

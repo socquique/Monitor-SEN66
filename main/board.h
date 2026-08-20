@@ -21,7 +21,7 @@
 
 // Rotacion por hardware (MADCTL): 0, 90, 180 o 270. Ajustar segun donde
 // quede el USB-C al montar la carcasa.
-#define BOARD_LCD_ROTATION     180
+#define BOARD_LCD_ROTATION     0
 
 // ------------------------------------------------------------------ tactil
 // CST9217 (I2C 0x5A) — comparte bus con IMU/RTC/PMU/audio
