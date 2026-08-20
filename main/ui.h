@@ -42,4 +42,8 @@ void ui_tick_1s(void);
 
 // Fuerza el brillo normal y reinicia los temporizadores (lo llama el propio
 // tactil, pero tambien sirve al despertar por otra via).
+// Con bateria la pantalla se apaga del todo (en AMOLED apagar es apagar) y
+// mucho antes de lo configurado. Enchufado manda lo que diga el usuario.
+void ui_set_on_battery(bool on_battery);
+
 void ui_wake(void);

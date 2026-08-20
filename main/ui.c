@@ -61,6 +61,8 @@ static lv_chart_series_t *s_cl_ser, *s_cl_ser_hum;
 static uint32_t s_idle_s;
 static uint32_t s_dwell_s;
 static bool s_dimmed;
+static bool s_on_battery;
+#define UI_BATTERY_TIMEOUT_S 30
 static air_sample_t s_last;
 
 // ------------------------------------------------------------------ helpers
@@ -587,6 +589,13 @@ void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg,
     }
 }
 
+void ui_set_on_battery(bool on_battery)
+{
+    if (on_battery == s_on_battery) return;
+    s_on_battery = on_battery;
+    ui_wake(); // al cambiar de perfil, encender y volver a contar
+}
+
 void ui_wake(void)
 {
     s_idle_s = 0;
@@ -601,11 +610,19 @@ void ui_wake(void)
 void ui_tick_1s(void)
 {
     // Atenuado por inactividad (en AMOLED bajar el brillo ahorra de verdad).
-    if (s_cfg.screen_timeout_s) {
+    // Con bateria se apaga entera, y sin esperar a lo configurado: el valor
+    // por defecto es 0 (nunca), que enchufado esta bien y en bateria no.
+    const uint32_t timeout = s_on_battery
+        ? (s_cfg.screen_timeout_s && s_cfg.screen_timeout_s < UI_BATTERY_TIMEOUT_S
+               ? s_cfg.screen_timeout_s : UI_BATTERY_TIMEOUT_S)
+        : s_cfg.screen_timeout_s;
+    const uint8_t dim_to = s_on_battery ? 0 : s_cfg.night_brightness;
+
+    if (timeout) {
         s_idle_s++;
-        if (!s_dimmed && s_idle_s >= s_cfg.screen_timeout_s) {
+        if (!s_dimmed && s_idle_s >= timeout) {
             s_dimmed = true;
-            if (s_set_brightness) s_set_brightness(s_cfg.night_brightness);
+            if (s_set_brightness) s_set_brightness(dim_to);
         }
     }
 

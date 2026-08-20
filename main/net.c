@@ -190,4 +190,10 @@ int net_rssi(void)
     return 0;
 }
 
+void net_set_power_save(bool enabled)
+{
+    esp_wifi_set_ps(enabled ? WIFI_PS_MIN_MODEM : WIFI_PS_NONE);
+    ESP_LOGI(TAG, "ahorro de radio %s", enabled ? "activado" : "desactivado");
+}
+
 void net_set_time_sync_cb(void (*cb)(void)) { s_time_cb = cb; }

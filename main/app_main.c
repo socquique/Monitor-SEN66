@@ -52,6 +52,20 @@ static const char *TAG = "app";
 #define SENSOR_RETRY_S 30
 // Cada cuanto guardar el estado del algoritmo VOC.
 #define VOC_SAVE_PERIOD_S 3600
+// --- Perfil de bateria ---------------------------------------------------
+// El ventilador del SEN66 es el mayor consumidor con diferencia, asi que con
+// bateria se mide a ratos: se arranca, se descartan los primeros segundos
+// mientras el ventilador coge velocidad, se toma la lectura y se para. El
+// ventilador acaba encendido ~10% del tiempo.
+//
+// Precio a pagar, y no es gratis: los indices VOC y NOx de Sensirion suponen
+// muestreo a 1 Hz. Midiendo a rachas pierden precision. El CO2, la
+// temperatura, la humedad y las particulas no se ven afectados.
+#define BATT_WARMUP_S  15   // se descarta: el ventilador arrancando
+#define BATT_MEASURE_S 15   // ventana de lectura buena
+#define BATT_CYCLE_S   300  // periodo completo
+#define BATT_MQTT_PERIOD_S 60
+
 // Cada cuanto anotar la bateria en el log. Sirve para medir el consumo real:
 // dos puntos separados en el tiempo dan la pendiente de descarga.
 #define BATT_LOG_PERIOD_S 300
@@ -207,55 +221,101 @@ static void sensor_task(void *arg)
     int64_t next_voc_us = esp_timer_get_time() + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
     int64_t alive_since_us = esp_timer_get_time();
 
+    bool on_battery = false;
+    bool midiendo = true;          // con bateria alterna; enchufado siempre true
+    int64_t fase_us = esp_timer_get_time();
+
     for (;;) {
-        if (s_sensor_ok) {
+        const int64_t now = esp_timer_get_time();
+
+        // ---- perfil segun haya USB o no ----
+        if (pmu_available() && now >= next_batt_us) {
+            next_batt_us = now + (int64_t)BATT_LOG_PERIOD_S * 1000000;
+            pmu_status_t b;
+            if (pmu_read(&b) == ESP_OK) {
+                if (b.present) {
+                    ESP_LOGI(TAG, "bateria %d%% (%u mV)%s", b.percent, b.millivolts,
+                             b.charging ? " cargando" : b.vbus ? " con USB" : " EN BATERIA");
+                }
+                const bool sin_usb = b.present && !b.vbus;
+                if (sin_usb != on_battery) {
+                    on_battery = sin_usb;
+                    ESP_LOGW(TAG, "perfil de %s", on_battery ? "BATERIA" : "red");
+                    net_set_power_save(on_battery);
+                    ui_set_on_battery(on_battery);
+                    if (!on_battery && !midiendo) {
+                        // volver a continuo en cuanto se enchufa
+                        sen66_start();
+                        midiendo = true;
+                        fase_us = now;
+                        alive_since_us = now;
+                    }
+                }
+            }
+        }
+
+        // ---- ciclo de medida con bateria ----
+        if (on_battery && s_sensor_ok) {
+            const int64_t transcurrido = (now - fase_us) / 1000000;
+            if (midiendo && transcurrido >= BATT_WARMUP_S + BATT_MEASURE_S) {
+                sen66_stop();
+                midiendo = false;
+                fase_us = now;
+            } else if (!midiendo && transcurrido >= BATT_CYCLE_S - BATT_WARMUP_S - BATT_MEASURE_S) {
+                voc_state_save(); // aprovechamos que esta parado y toca guardar
+                sen66_start();
+                midiendo = true;
+                fase_us = now;
+                alive_since_us = now;
+            }
+        }
+
+        if (s_sensor_ok && midiendo) {
             air_sample_t fresh;
             air_sample_clear(&fresh);
             const esp_err_t err = sen66_read(&fresh);
 
             if (err == ESP_OK) {
-                s_last_read_us = esp_timer_get_time();
-                s_had_reading = true;
-                alarm_check(fresh.v[AIR_CO2]);
-                xSemaphoreTake(s_lock, portMAX_DELAY);
-                s_sample = fresh;
-                xSemaphoreGive(s_lock);
-                air_history_push(s_hist, &fresh, time(NULL));
+                const bool util = !on_battery ||
+                                  ((now - fase_us) / 1000000) >= BATT_WARMUP_S;
+                if (util) {
+                    s_last_read_us = esp_timer_get_time();
+                    s_had_reading = true;
+                    alarm_check(fresh.v[AIR_CO2]);
+                    xSemaphoreTake(s_lock, portMAX_DELAY);
+                    s_sample = fresh;
+                    xSemaphoreGive(s_lock);
+                    air_history_push(s_hist, &fresh, time(NULL));
+                }
             } else if (err != ESP_ERR_NOT_FINISHED) {
                 ESP_LOGW(TAG, "lectura fallida: %s", esp_err_to_name(err));
             }
         }
 
-        const int64_t now = esp_timer_get_time();
-
         // Referencia para la frescura: la ultima lectura buena o, si aun no ha
-        // habido ninguna, el arranque de la tarea.
+        // habido ninguna, el arranque de la fase. Con bateria el margen tiene
+        // que cubrir un ciclo entero, o el sensor parado a proposito se
+        // confundiria con un sensor averiado.
         const int64_t ref = s_last_read_us ? s_last_read_us : alive_since_us;
-        const bool vivo = s_sensor_ok && (now - ref) < (int64_t)SENSOR_DEAD_S * 1000000;
+        const int muerto_s = on_battery ? BATT_CYCLE_S + 120 : SENSOR_DEAD_S;
+        const bool vivo = s_sensor_ok && (now - ref) < (int64_t)muerto_s * 1000000;
 
         ha_mqtt_set_available(vivo);
         if (!vivo && now >= next_retry_us) {
             next_retry_us = now + (int64_t)SENSOR_RETRY_S * 1000000;
             sensor_recover();
             alive_since_us = esp_timer_get_time();
+            midiendo = true;
+            fase_us = alive_since_us;
         }
 
-        if (now >= next_batt_us && pmu_available()) {
-            next_batt_us = now + (int64_t)BATT_LOG_PERIOD_S * 1000000;
-            pmu_status_t b;
-            if (pmu_read(&b) == ESP_OK && b.present) {
-                ESP_LOGI(TAG, "bateria %d%% (%u mV)%s", b.percent, b.millivolts,
-                         b.charging ? " cargando" : b.vbus ? " con USB" : " EN BATERIA");
-            }
-        }
-
-        if (vivo && now >= next_voc_us) {
+        if (vivo && !on_battery && now >= next_voc_us) {
             next_voc_us = now + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
             voc_state_save();
         }
 
         if (vivo && now >= next_mqtt_us) {
-            next_mqtt_us = now + (int64_t)MQTT_PERIOD_S * 1000000;
+            next_mqtt_us = now + (int64_t)(on_battery ? BATT_MQTT_PERIOD_S : MQTT_PERIOD_S) * 1000000;
             air_sample_t snap;
             xSemaphoreTake(s_lock, portMAX_DELAY);
             snap = s_sample;

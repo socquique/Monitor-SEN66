@@ -27,5 +27,10 @@ int net_rssi(void);             // dBm, 0 si no aplica
 const char *net_device_id(void);// "sen66-a1b2c3", estable por MAC
 const char *net_ap_ssid(void);  // SSID del portal
 
+// Ahorro de energia de la radio. Con batería compensa: el modem duerme entre
+// balizas. Enchufado lo dejamos apagado, que con DTIM el ping y MQTT se
+// vuelven erraticos.
+void net_set_power_save(bool enabled);
+
 // Callback opcional cuando SNTP sincroniza (para poner en hora el RTC).
 void net_set_time_sync_cb(void (*cb)(void));
