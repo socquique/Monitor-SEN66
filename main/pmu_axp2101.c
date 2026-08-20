@@ -9,8 +9,8 @@
 static const char *TAG = "axp2101";
 
 #define AXP_ADDR              0x34
-#define REG_STATUS1           0x00  // bit3: bateria conectada
-#define REG_STATUS2           0x01  // bits6:5 == 01 cargando; bit3 vbus
+#define REG_STATUS1           0x00  // bit3: bateria conectada; bit5: VBUS valido
+#define REG_STATUS2           0x01  // bits6:5 == 01 cargando; bit3: VBUS ausente
 #define REG_IC_TYPE           0x03
 #define REG_GAUGE_WDT_CTRL    0x18  // bit3: medidor de carga
 #define REG_ADC_CHANNEL_CTRL  0x30  // bit0: medir tension de bateria
@@ -135,7 +135,11 @@ esp_err_t pmu_read(pmu_status_t *out)
     pmu_status_t s = {0};
     s.present = (st1 >> 3) & 1;
     s.charging = ((st2 >> 5) & 0x03) == 0x01;
-    s.vbus = !((st2 >> 3) & 1);
+    // Hacen falta LAS DOS condiciones: que STATUS2 bit3 diga que hay VBUS y
+    // que STATUS1 bit5 diga que es valido. Comprobando solo la primera, el
+    // aparato seguia creyendo que estaba enchufado con el cable fuera y el
+    // perfil de bateria no llegaba a activarse nunca.
+    s.vbus = !((st2 >> 3) & 1) && ((st1 >> 5) & 1);
     s.percent = -1;
 
     if (s.present) {
