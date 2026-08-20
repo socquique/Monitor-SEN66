@@ -6,6 +6,7 @@ idf_component_register(
         "ha_mqtt.c"
         "history.c"
         "net.c"
+        "pmu_axp2101.c"
         "rtc_pcf85063.c"
         "sen66.c"
         "settings.c"

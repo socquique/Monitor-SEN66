@@ -31,6 +31,7 @@
 #include "ha_mqtt.h"
 #include "history.h"
 #include "net.h"
+#include "pmu_axp2101.h"
 #include "rtc_pcf85063.h"
 #include "sen66.h"
 #include "settings.h"
@@ -50,6 +51,9 @@ static const char *TAG = "app";
 #define SENSOR_RETRY_S 30
 // Cada cuanto guardar el estado del algoritmo VOC.
 #define VOC_SAVE_PERIOD_S 3600
+// Cada cuanto anotar la bateria en el log. Sirve para medir el consumo real:
+// dos puntos separados en el tiempo dan la pendiente de descarga.
+#define BATT_LOG_PERIOD_S 300
 
 static air_history_t *s_hist;
 static SemaphoreHandle_t s_lock;
@@ -178,6 +182,7 @@ static void sensor_task(void *arg)
     (void)arg;
     int64_t next_mqtt_us = 0;
     int64_t next_retry_us = 0;
+    int64_t next_batt_us = 0;
     int64_t next_voc_us = esp_timer_get_time() + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
     int64_t alive_since_us = esp_timer_get_time();
 
@@ -211,6 +216,15 @@ static void sensor_task(void *arg)
             next_retry_us = now + (int64_t)SENSOR_RETRY_S * 1000000;
             sensor_recover();
             alive_since_us = esp_timer_get_time();
+        }
+
+        if (now >= next_batt_us && pmu_available()) {
+            next_batt_us = now + (int64_t)BATT_LOG_PERIOD_S * 1000000;
+            pmu_status_t b;
+            if (pmu_read(&b) == ESP_OK && b.present) {
+                ESP_LOGI(TAG, "bateria %d%% (%u mV)%s", b.percent, b.millivolts,
+                         b.charging ? " cargando" : b.vbus ? " con USB" : " EN BATERIA");
+            }
         }
 
         if (vivo && now >= next_voc_us) {
@@ -312,6 +326,7 @@ void app_main(void)
     ESP_ERROR_CHECK(display_init());
 
     ESP_ERROR_CHECK(rtc_pcf85063_init(display_i2c_bus()));
+    pmu_init(display_i2c_bus()); // sin ESP_ERROR_CHECK: sin PMU se sigue viviendo
     clock_from_rtc();
     net_set_time_sync_cb(clock_to_rtc);
 
@@ -342,6 +357,15 @@ void app_main(void)
     ESP_ERROR_CHECK(net_start());
     ESP_ERROR_CHECK(webcfg_start(get_sample_for_web));
     ha_mqtt_start();
+
+    if (pmu_available()) {
+        pmu_status_t b;
+        if (pmu_read(&b) == ESP_OK) {
+            ESP_LOGI(TAG, "bateria: %s, %d%%, %u mV%s%s",
+                     b.present ? "presente" : "ausente", b.percent, b.millivolts,
+                     b.charging ? ", cargando" : "", b.vbus ? ", con USB" : "");
+        }
+    }
 
     xTaskCreatePinnedToCore(sensor_task, "sen66", 4096, NULL, 5, NULL, 1);
 

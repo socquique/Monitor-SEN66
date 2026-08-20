@@ -2,6 +2,7 @@
 #include "display.h"
 #include "ha_mqtt.h"
 #include "net.h"
+#include "pmu_axp2101.h"
 #include "sen66.h"
 #include "settings.h"
 #include "version.h"
@@ -130,6 +131,16 @@ static esp_err_t h_state(httpd_req_t *req)
         settings_get()->device_name, APP_VERSION, net_device_id(),
         net_ip()[0] ? net_ip() : "sin IP", net_rssi(),
         ha_mqtt_connected() ? "true" : "false", sensor, (unsigned)s.age_s);
+
+    // Bateria: es lo unico que se puede consultar con el USB fuera, asi que
+    // es la herramienta para medir el consumo real en descarga.
+    pmu_status_t b;
+    if (pmu_available() && pmu_read(&b) == ESP_OK && b.present) {
+        n += snprintf(json + n, sizeof(json) - n,
+                      "\"bat_pct\":%d,\"bat_mv\":%u,\"charging\":%s,\"usb\":%s,",
+                      b.percent, b.millivolts,
+                      b.charging ? "true" : "false", b.vbus ? "true" : "false");
+    }
 
     for (int m = 0; m < AIR_METRIC_COUNT; m++) {
         const char *key = air_metric_key((air_metric_t)m);
