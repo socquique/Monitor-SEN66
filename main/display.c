@@ -114,14 +114,15 @@ static esp_err_t touch_init(esp_lcd_touch_handle_t *out_touch)
         .rst_gpio_num = BOARD_TOUCH_PIN_RST,
         .int_gpio_num = BOARD_TOUCH_PIN_INT, // sin INT, leer por I2C puede colgar ~1s
         .levels = { .reset = 0, .interrupt = 0 },
-        // El tactil aplica la transformacion INVERSA a la del panel
+        // Misma tabla de angulos que el panel, pero sobre
+        // BOARD_TOUCH_ROTATION, que ya incluye el desfase de montaje.
         .flags = {
-#if BOARD_LCD_ROTATION == 90
-            .swap_xy = 1, .mirror_x = 1,
-#elif BOARD_LCD_ROTATION == 180
-            .mirror_x = 1, .mirror_y = 1,
-#elif BOARD_LCD_ROTATION == 270
+#if BOARD_TOUCH_ROTATION == 90
             .swap_xy = 1, .mirror_y = 1,
+#elif BOARD_TOUCH_ROTATION == 180
+            .mirror_x = 1, .mirror_y = 1,
+#elif BOARD_TOUCH_ROTATION == 270
+            .swap_xy = 1, .mirror_x = 1,
 #endif
         },
     };

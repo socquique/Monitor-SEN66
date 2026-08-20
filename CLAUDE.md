@@ -37,16 +37,19 @@ táctil, PMU, RTC o audio**, y añadirle lo que se aprenda.
   pinta líneas verdes en los bordes (`round_area_cb` en `display.c`).
 - Al arrancar hay que **barrer los 480×480 de GRAM a negro**: la memoria del
   panel es mayor que los 466 visibles y `set_gap` no cubre todos los casos.
-- **Radio útil**: el anillo grande del resumen es de 322 px de diámetro
-  (`RING_D`) y no de 378 a propósito. Con 378 el arco pasa justo por donde va
-  la línea de estado y el texto verde quedaba invisible sobre el arco verde.
-  Cualquier elemento que se ponga a menos de ~70 px del borde superior va a
-  chocar con la chrome.
-- **El hueco libre dentro del anillo tiene radio 139**, no 161: `RING_D/2`
-  es el borde exterior y hay que restarle los 22 de grosor del arco. De ahí
-  salen los números de la UI: a y=±104 solo caben 184 px de ancho (por eso la
-  gráfica del CO₂ es de 180 y no de 200), y a y=±80 unos 227 (por eso los
-  secundarios del resumen van a dx=62 y con rótulos abreviados).
+- **Radio útil**: `RING_D` es 380 y la hora y el estado de red van DENTRO
+  del anillo (`LV_ALIGN_CENTER, -146` y `-124`). Antes el anillo era de 322
+  justamente porque a más diámetro el arco pasaba por donde iba la línea de
+  estado y el texto quedaba ilegible sobre el color; meter la chrome dentro
+  es lo que desbloquea que el arco llegue casi al borde.
+- **El hueco libre dentro del anillo es `RING_INNER_R` = 168**, no 190:
+  `RING_D/2` es el borde exterior y hay que restarle los 22 de grosor del
+  arco. De ahí salen todas las coordenadas de las páginas.
+- **Las gráficas van a sangre y por debajo de todo**: 430 px de ancho (más
+  que el propio anillo), creadas ANTES que el resto para que queden en el
+  fondo. La línea pasa por detrás de los brazos del arco y la recorta el
+  cristal, que es el efecto del PowerDot. Ojo: cruzándola por el centro tapa
+  el número — tiene que ir de banda inferior (y≈+100), probado.
 - **Los dos anillos no son la misma cosa.** El del resumen es un semáforo que
   se pinta entero y lleva indicador del mismo grosor que la pista; los de
   medida llevan el indicador 8 px más fino, porque a igual grosor un valor

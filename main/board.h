@@ -20,8 +20,19 @@
 #define BOARD_LCD_PIN_RST      39
 
 // Rotacion por hardware (MADCTL): 0, 90, 180 o 270. Ajustar segun donde
-// quede el USB-C al montar la carcasa.
+// quede el USB-C al montar la carcasa. OJO: la macro gira en sentido
+// ANTIHORARIO, asi que para enderezar la imagen hay que restar, no sumar.
 #define BOARD_LCD_ROTATION     0
+
+// El tactil NO comparte origen con el panel: en esta placa esta montado a
+// 180 grados de el. Se deduce de la propia placa (con el panel a 0 la imagen
+// sale derecha pero los gestos van al reves) y encaja con lo que hacia el
+// firmware para 90 y 270, que si estaban probados.
+//
+// Antes los dos bloques #if de display.c estaban escritos a mano y aplicaban
+// este desfase solo en 90 y 270, no en 0 ni en 180: por eso al cambiar la
+// rotacion se invertian los gestos. Derivarlo evita volver a descuadrarlo.
+#define BOARD_TOUCH_ROTATION   (((BOARD_LCD_ROTATION) + 180) % 360)
 
 // ------------------------------------------------------------------ tactil
 // CST9217 (I2C 0x5A) — comparte bus con IMU/RTC/PMU/audio

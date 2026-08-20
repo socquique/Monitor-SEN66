@@ -13,10 +13,14 @@
 // Margen para que nada caiga en el borde curvo del panel redondo.
 #define EDGE 34
 
-// Diametro de los anillos grandes. Deliberadamente menor que el circulo
-// disponible: con 378 px el anillo pasa justo por donde va la linea de estado
-// y el texto se volvia ilegible sobre el arco de color.
-#define RING_D 322
+// Diametro de los anillos grandes. Antes era 322 para dejar sitio arriba a
+// la hora y el estado de red; ahora esos van DENTRO del anillo, asi que el
+// arco puede irse casi al borde. 380 deja 43 px hasta el cristal.
+#define RING_D 380
+
+// Hueco util dentro del anillo: radio exterior menos el grosor del arco.
+// De aqui salen todas las coordenadas de las paginas.
+#define RING_INNER_R ((RING_D) / 2 - 22)
 
 enum { PAGE_SUMMARY = 0, PAGE_CO2, PAGE_PM, PAGE_GAS, PAGE_CLIMATE };
 
@@ -159,13 +163,13 @@ static void chart_create(lv_obj_t **out_chart, lv_chart_series_t **out_ser,
     lv_obj_set_size(c, w, h);
     lv_chart_set_type(c, LV_CHART_TYPE_LINE);
     lv_chart_set_point_count(c, CHART_POINTS);
-    lv_chart_set_div_line_count(c, 3, 0);
+    lv_chart_set_div_line_count(c, 0, 0); // sin rejilla: la linea sola
     lv_chart_set_update_mode(c, LV_CHART_UPDATE_MODE_SHIFT);
     lv_obj_set_style_bg_opa(c, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(c, 0, 0);
     lv_obj_set_style_pad_all(c, 0, 0);
     lv_obj_set_style_line_color(c, col(0x1e293b), LV_PART_MAIN);
-    lv_obj_set_style_line_width(c, 3, LV_PART_ITEMS);
+    lv_obj_set_style_line_width(c, 2, LV_PART_ITEMS);
     lv_obj_set_style_width(c, 0, LV_PART_INDICATOR);  // sin puntos
     lv_obj_set_style_height(c, 0, LV_PART_INDICATOR);
     *out_ser = lv_chart_add_series(c, col(color), LV_CHART_AXIS_PRIMARY_Y);
@@ -234,15 +238,15 @@ static void build_summary(lv_obj_t *tile)
     lv_obj_set_style_arc_width(s_g_summary.arc, 22, LV_PART_INDICATOR);
 
     s_sum_center = make_label(tile, &lv_font_montserrat_28, 0xffffff);
-    lv_obj_align(s_sum_center, LV_ALIGN_CENTER, 0, -76);
+    lv_obj_align(s_sum_center, LV_ALIGN_CENTER, 0, -66);
     s_sum_sub = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
-    lv_obj_align(s_sum_sub, LV_ALIGN_CENTER, 0, -44);
+    lv_obj_align(s_sum_sub, LV_ALIGN_CENTER, 0, -32);
 
-    // Rejilla 2x2 de secundarios. El hueco libre dentro del anillo tiene
-    // radio 139 (161 del arco menos sus 22 de grosor), asi que a y=+80 solo
-    // quedan ~107 px a cada lado: de ahi el dx de 62 y los rotulos cortos.
-    static const int dx[4] = {-62, 62, -62, 62};
-    static const int dy[4] = {-4, -4, 56, 56};
+    // Rejilla 2x2 de secundarios. Con el anillo a 380 el hueco libre tiene
+    // radio 168 y a y=+101 quedan 134 px a cada lado, sitio de sobra para
+    // separarlos mas que antes.
+    static const int dx[4] = {-74, 74, -74, 74};
+    static const int dy[4] = {8, 8, 68, 68};
     for (int i = 0; i < 4; i++) {
         mini_create(tile, &s_sum_name[i], &s_sum_val[i], dx[i], dy[i],
                     &lv_font_montserrat_22);
@@ -251,19 +255,20 @@ static void build_summary(lv_obj_t *tile)
 
 static void build_co2(lv_obj_t *tile)
 {
+    // La grafica va PRIMERO para quedar por debajo de todo lo demas: cruza la
+    // pantalla de lado a lado y el anillo y el numero se pintan encima. El
+    // anillo la tapa donde la cruza, asi que la linea parece pasar por debajo
+    // y salir por los dos bordes.
+    chart_create(&s_co2_chart, &s_co2_ser, tile, 430, 90, 0x38bdf8);
+    lv_obj_align(s_co2_chart, LV_ALIGN_CENTER, 0, 100);
+
     gauge_create(&s_g_co2, tile, RING_D, 22,
                  &lv_font_montserrat_48, &lv_font_montserrat_16);
     lv_obj_align(s_g_co2.value, LV_ALIGN_CENTER, 0, -44);
-    lv_obj_align(s_g_co2.caption, LV_ALIGN_CENTER, 0, -104);
+    lv_obj_align(s_g_co2.caption, LV_ALIGN_CENTER, 0, -96);
 
     s_co2_level = make_label(tile, &lv_font_montserrat_22, 0xffffff);
-    lv_obj_align(s_co2_level, LV_ALIGN_CENTER, 0, 14);
-
-    // 180x56 a y=+76: el borde inferior queda en y=104, donde el hueco libre
-    // del anillo mide 184 px de ancho. Con los 200x62 de antes las esquinas
-    // cruzaban el arco y se veia sucio.
-    chart_create(&s_co2_chart, &s_co2_ser, tile, 180, 56, 0x38bdf8);
-    lv_obj_align(s_co2_chart, LV_ALIGN_CENTER, 0, 76);
+    lv_obj_align(s_co2_level, LV_ALIGN_CENTER, 0, 26);
 }
 
 static void build_pm(lv_obj_t *tile)
@@ -274,15 +279,15 @@ static void build_pm(lv_obj_t *tile)
     // que se lleva el centro y las otras tres acompanan.
     gauge_create(&s_g_pm, tile, RING_D, 22,
                  &lv_font_montserrat_48, &lv_font_montserrat_16);
-    lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -60);
-    lv_obj_align(s_g_pm.caption, LV_ALIGN_CENTER, 0, -112);
+    lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -48);
+    lv_obj_align(s_g_pm.caption, LV_ALIGN_CENTER, 0, -100);
 
     s_pm_level = make_label(tile, &lv_font_montserrat_22, 0xffffff);
-    lv_obj_align(s_pm_level, LV_ALIGN_CENTER, 0, -2);
+    lv_obj_align(s_pm_level, LV_ALIGN_CENTER, 0, 22);
 
-    static const int dx[3] = {-88, 0, 88};
+    static const int dx[3] = {-95, 0, 95};
     for (int i = 0; i < 3; i++) {
-        mini_create(tile, &s_pm_name[i], &s_pm_val[i], dx[i], 44,
+        mini_create(tile, &s_pm_name[i], &s_pm_val[i], dx[i], 64,
                     &lv_font_montserrat_22);
     }
 }
@@ -291,55 +296,59 @@ static void build_gas(lv_obj_t *tile)
 {
     lv_obj_t *title = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
     lv_label_set_text(title, "Gases");
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -142);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
 
     // Dos esferas de 168 centradas en x=+-88: la esquina exterior queda a 194
     // px del centro de pantalla, dentro de los ~199 utiles. Con 176 se salian.
     lv_obj_t *left = plain(tile);
     lv_obj_set_size(left, 176, 176);
-    lv_obj_align(left, LV_ALIGN_CENTER, -88, -6);
+    lv_obj_align(left, LV_ALIGN_CENTER, -88, 14);
     gauge_create(&s_g_voc, left, 168, 16, &lv_font_montserrat_48, &lv_font_montserrat_14);
 
     lv_obj_t *right = plain(tile);
     lv_obj_set_size(right, 176, 176);
-    lv_obj_align(right, LV_ALIGN_CENTER, 88, -6);
+    lv_obj_align(right, LV_ALIGN_CENTER, 88, 14);
     gauge_create(&s_g_nox, right, 168, 16, &lv_font_montserrat_48, &lv_font_montserrat_14);
 
     lv_obj_t *hint = make_label(tile, &lv_font_montserrat_14, 0x64748b);
     lv_label_set_text(hint, "100 = ambiente habitual");
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 118);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 134);
 }
 
 static void build_climate(lv_obj_t *tile)
 {
     lv_obj_t *title = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
     lv_label_set_text(title, "Clima");
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -142);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
 
     // Las dos cifras al mismo tamano: la humedad tambien es un dato, no un
     // pie de foto. Cada una del color de su curva, que asi la grafica se
     // explica sola y no hace falta leyenda.
+    // Lado a lado en vez de apiladas: deja sitio abajo para que la curva
+    // ocupe todo el ancho, que es el efecto que se buscaba.
     s_cl_temp = make_label(tile, &lv_font_montserrat_48, 0xf59e0b);
-    lv_obj_align(s_cl_temp, LV_ALIGN_CENTER, 0, -88);
+    lv_obj_align(s_cl_temp, LV_ALIGN_CENTER, -88, -40);
     s_cl_hum = make_label(tile, &lv_font_montserrat_48, 0x38bdf8);
-    lv_obj_align(s_cl_hum, LV_ALIGN_CENTER, 0, -32);
+    lv_obj_align(s_cl_hum, LV_ALIGN_CENTER, 88, -40);
 
     // Sin anillo esta pagina puede permitirse una grafica ancha. Las dos
     // curvas comparten dibujo pero no escala: la humedad va al eje secundario
     // porque se mueve por el 50 % y la temperatura por los 25 grados.
-    chart_create(&s_cl_chart, &s_cl_ser, tile, 300, 92, 0xf59e0b);
+    chart_create(&s_cl_chart, &s_cl_ser, tile, 430, 110, 0xf59e0b);
     s_cl_ser_hum = chart_add_secondary(s_cl_chart, 0x38bdf8);
-    lv_obj_align(s_cl_chart, LV_ALIGN_CENTER, 0, 62);
+    lv_obj_align(s_cl_chart, LV_ALIGN_CENTER, 0, 70);
 }
 
 // ------------------------------------------------------------------ estado
 static void build_chrome(lv_obj_t *scr)
 {
+    // Hora y estado de red DENTRO del anillo, no encima: es lo que permite
+    // que el arco crezca hasta el borde sin que el texto caiga sobre el color.
     s_status_time = make_label(scr, &lv_font_montserrat_16, 0xe2e8f0);
-    lv_obj_align(s_status_time, LV_ALIGN_TOP_MID, 0, 26);
+    lv_obj_align(s_status_time, LV_ALIGN_CENTER, 0, -146);
 
     s_status_net = make_label(scr, &lv_font_montserrat_14, 0x475569);
-    lv_obj_align(s_status_net, LV_ALIGN_TOP_MID, 0, 48);
+    lv_obj_align(s_status_net, LV_ALIGN_CENTER, 0, -124);
 
     s_status_msg = make_label(scr, &lv_font_montserrat_14, 0xfacc15);
     lv_obj_align(s_status_msg, LV_ALIGN_BOTTOM_MID, 0, -52);
@@ -496,7 +505,7 @@ void ui_update(const air_sample_t *s)
         }
         case PAGE_PM: {
             gauge_update(&s_g_pm, AIR_PM25, s->v[AIR_PM25]);
-            lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -60);
+            lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -48);
             lv_obj_align_to(s_g_pm.unit, s_g_pm.value, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
             const air_level_t lvl = air_level(AIR_PM25, s->v[AIR_PM25]);
             lv_label_set_text(s_pm_level, air_level_text(lvl));
