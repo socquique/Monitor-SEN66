@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "driver/gpio.h"
 #include "driver/i2c_master.h"
+#include "esp_rom_sys.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -121,6 +123,45 @@ static void words_to_ascii(const uint16_t *w, int nwords, char *buf, size_t len)
 }
 
 // -------------------------------------------------------------------- init
+// Si el ESP32 se reinicia a mitad de una transaccion (reflasheo, watchdog,
+// boton de reset), el SEN66 se queda enviando su byte: sujeta SDA a masa
+// esperando unos pulsos de reloj que ya no llegan, y el bus queda muerto.
+// Se libera dandole a mano los pulsos que le faltan y cerrando con un STOP.
+// Hay que hacerlo ANTES de instalar el driver, que se queda con los pines.
+static void bus_recover(int sda, int scl)
+{
+    const gpio_config_t io = {
+        .pin_bit_mask = (1ULL << sda) | (1ULL << scl),
+        .mode = GPIO_MODE_INPUT_OUTPUT_OD, // drenaje abierto: nadie fuerza el alto
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    if (gpio_config(&io) != ESP_OK) return;
+
+    gpio_set_level(sda, 1);
+    gpio_set_level(scl, 1);
+    esp_rom_delay_us(10);
+
+    int pulses = 0;
+    while (gpio_get_level(sda) == 0 && pulses < 9) { // 9 = byte + ACK
+        gpio_set_level(scl, 0);
+        esp_rom_delay_us(5);
+        gpio_set_level(scl, 1);
+        esp_rom_delay_us(5);
+        pulses++;
+    }
+    // STOP: SDA sube mientras SCL esta alto
+    gpio_set_level(sda, 0);
+    esp_rom_delay_us(5);
+    gpio_set_level(scl, 1);
+    esp_rom_delay_us(5);
+    gpio_set_level(sda, 1);
+    esp_rom_delay_us(5);
+
+    if (pulses) ESP_LOGW(TAG, "bus I2C bloqueado, liberado con %d pulsos", pulses);
+    gpio_reset_pin(sda);
+    gpio_reset_pin(scl);
+}
+
 static esp_err_t bus_open(int sda, int scl)
 {
     const i2c_master_bus_config_t bus_cfg = {
@@ -171,8 +212,18 @@ esp_err_t sen66_init(bool autodetect)
         const int scl = (i == 0) ? BOARD_SEN66_PIN_SCL : candidates[i][1];
         if (i > 0 && sda == BOARD_SEN66_PIN_SDA && scl == BOARD_SEN66_PIN_SCL) continue;
 
+        bus_recover(sda, scl);
         if (bus_open(sda, scl) != ESP_OK) continue;
-        if (i2c_master_probe(s_bus, SEN66_ADDR, 100) == ESP_OK && looks_like_sen66()) {
+
+        // Reintentos: tras un reinicio el sensor puede tardar en volver a
+        // atender, y una sola pasada lo daba por ausente (visto en la placa).
+        bool found = false;
+        for (int attempt = 0; attempt < 3 && !found; attempt++) {
+            if (attempt) vTaskDelay(pdMS_TO_TICKS(60));
+            found = (i2c_master_probe(s_bus, SEN66_ADDR, 100) == ESP_OK) && looks_like_sen66();
+        }
+
+        if (found) {
             s_sda = sda;
             s_scl = scl;
             s_present = true;

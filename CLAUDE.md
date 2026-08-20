@@ -82,6 +82,14 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
   MQTT + OTA. Con 96 filas quedan 42 KB. Si hay que recortar, se recorta de
   la pantalla: 96 y 114 filas vuelcan los mismos 5 trozos por frame.
 - **La serigrafía del header manda sobre la documentación.** Ver `board.h`.
+- **Recuperar el bus I2C antes de abrirlo** (`bus_recover()` en `sen66.c`).
+  Un reset del ESP32 a mitad de transacción deja al SEN66 sujetando SDA a
+  masa y el sensor sale como "no detectado" hasta el siguiente ciclo de
+  alimentación. Pasa en cada `idf.py flash`. Pulsos manuales de SCL + STOP.
+- **Un log optimista no es una comprobación.** Dos veces en la misma sesión:
+  `net.c` cantaba "portal abierto" con la radio apagada y `webcfg.c`
+  anunciaba 192.168.4.1 estando en la red de casa. Loguear lo que se ha
+  verificado, no lo que se pretendía hacer.
 
 ## Pendiente
 
