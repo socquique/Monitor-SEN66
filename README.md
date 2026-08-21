@@ -175,8 +175,36 @@ trigger:
     above: 1200
 ```
 
-El histórico de HA guarda **10 días** por defecto (`recorder`). Para
-tendencias largas hay que subirlo o añadir estadísticas de larga duración.
+### Histórico
+
+Aquí hay un malentendido fácil. HA guarda **dos cosas distintas**:
+
+- Las **estadísticas de larga duración**: una fila por hora con mínimo, máximo
+  y media. **No se purgan nunca.** Salen solas en todas las métricas porque el
+  firmware publica `state_class: measurement`. Las tendencias de meses ya las
+  tienes sin tocar nada.
+- El **detalle**, cada muestra tal cual llegó. Eso sí caduca, a los **10 días**
+  por defecto.
+
+O sea que subir la retención solo sirve para poder hacer zoom en un día
+concreto de hace tiempo, no para ver la tendencia larga.
+
+Si aun así lo quieres más largo, en `configuration.yaml`:
+
+```yaml
+recorder:
+  purge_keep_days: 30
+  commit_interval: 30
+  exclude:
+    entities:
+      - sensor.monitor_sen66_wifi
+```
+
+El aparato publica cada 10 s y sus métricas cambian casi siempre, así que él
+solo son unas **15.000 filas al día** (medido). Con 30 días la base de datos
+se queda en torno a 80 MB. La cobertura WiFi va excluida porque son ~1.700
+filas diarias de un diagnóstico que nadie mira en histórico; se sigue viendo
+en vivo, simplemente no se guarda.
 
 ## HomeKit (sin Home Assistant)
 
