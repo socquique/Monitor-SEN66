@@ -79,7 +79,7 @@ idf.py -p /dev/cu.usbmodem1101 flash monitor
 
 ## Ya verificado contra el hardware (20-08-2026)
 
-Primer arranque real: pantalla, táctil, RTC y SEN66 (serie 442E788C003F85BF,
+Primer arranque real: pantalla, táctil, RTC y SEN66 (serie 0123456789ABCDEF,
 firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 - **El buffer de LVGL no puede ser un número fijo de filas.** En esta placa el

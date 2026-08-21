@@ -11,11 +11,33 @@ publica los `.bin`), así que esto es una implementación nueva desde cero,
 adaptada a la AMOLED redonda: driver CO5300 por QSPI, táctil CST9217, RTC
 para el histórico y un simulador de escritorio para iterar la pantalla.
 
-## Qué mide
+<p align="center">
+  <img src="docs/img/pagina_0.png" width="300" alt="Pantalla de resumen">
+</p>
 
-El SEN66 da nueve magnitudes en un solo módulo: **CO₂**, **PM1.0 / PM2.5 /
-PM4.0 / PM10**, **índice VOC**, **índice NOx**, **temperatura** y
-**humedad**.
+## Qué hace
+
+- Mide **nueve magnitudes** con un solo sensor: CO₂, PM1.0 / PM2.5 / PM4.0 /
+  PM10, índice VOC, índice NOx, temperatura y humedad.
+- **Cinco páginas** en una pantalla AMOLED redonda, más una vista de reposo
+  que las muestra todas de un vistazo.
+- **Aparece solo en Home Assistant** por MQTT autodiscovery, y funciona
+  también con **HomeKit** vía Homebridge ([guía](docs/HOMEBRIDGE.md)).
+- **Todo local**: ni nube, ni cuenta, ni telemetría. Sigue funcionando con la
+  red caída — la pantalla es autónoma.
+- **Panel web** para configurarlo y **actualizaciones por WiFi** (OTA).
+- **Aviso sonoro** al pasar el umbral de CO₂, con histéresis.
+- Funciona **con batería**, con un perfil de ahorro que se activa solo al
+  desenchufar (~6 h medidas con una celda de 1000 mAh).
+- La pantalla habla **español, inglés y alemán**.
+
+| Resumen | CO₂ | Partículas |
+|---|---|---|
+| ![](docs/img/pagina_0.png) | ![](docs/img/pagina_1.png) | ![](docs/img/pagina_2.png) |
+| **Gases** | **Clima** | **Reposo** |
+| ![](docs/img/pagina_3.png) | ![](docs/img/pagina_4.png) | ![](docs/img/reposo.png) |
+
+*(capturas del simulador incluido, que ejecuta la misma UI que el firmware)*
 
 ## Piezas
 
@@ -37,7 +59,7 @@ sensor no compite con el táctil.
 
 **El esquema completo está en [docs/CABLEADO.md](docs/CABLEADO.md).** Resumen:
 
-Se cablea por la **etiqueta serigrafiada** del header, no por numero de pin:
+Se cablea por la **etiqueta serigrafiada** del header, no por número de pin:
 
 | SEN66 | Cable | → | Etiqueta en la placa |
 |---|---|---|---|
@@ -264,3 +286,26 @@ Compila limpio (ESP-IDF 5.5.2, 1,5 MB, sin warnings) y la UI está verificada
 en el simulador página a página. **Todavía no se ha probado contra hardware
 real** — el SEN66 está de camino. Al montarlo queda por ajustar la rotación
 de pantalla `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa.
+
+## Licencia
+
+[MIT](LICENSE). Haz lo que quieras con esto, pero sin garantía de ninguna
+clase: es un proyecto doméstico, no un instrumento de medida certificado.
+
+## Agradecimientos
+
+- **[PowerDot Air](https://makerworld.com/es/models/3029930-powerdot-air-home-assistant-air-sensor)**
+  de Scoolt96, sobre la Waveshare 1.46" LCD, del que salió la idea. Su
+  firmware es cerrado, así que aquí no hay una línea suya: esto es una
+  implementación propia para otra pantalla.
+- **Sensirion**, por publicar sus drivers con documentación de verdad. El
+  protocolo del SEN66 de este firmware está verificado contra
+  [raspberry-pi-i2c-sen66](https://github.com/Sensirion/raspberry-pi-i2c-sen66).
+- **Espressif**, por ESP-IDF y por el componente
+  [es8311](https://components.espressif.com/components/espressif/es8311), del
+  que se copió la secuencia de registros del códec de audio (usa la API
+  antigua de I2C, así que aquí va reescrita sobre la nueva).
+- **Waveshare**, por publicar la
+  [referencia de hardware](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75)
+  de la placa. Ojo: el orden de pines del header que da NO coincide con la
+  serigrafía; manda el cobre.

@@ -75,7 +75,7 @@ anade al accesorio de calidad del aire:
 
 ```json
 "getVOCDensity": {
-  "topic": "sen66-8625d4/state",
+  "topic": "sen66-XXXXXX/state",
   "apply": "return JSON.parse(message).voc;"
 },
 ```
@@ -99,7 +99,7 @@ recibe los mensajes cada 10 s, las funciones `apply` los decodifican y las
 caracteristicas se actualizan.
 
 ```
-[CO2] Received MQTT: sen66-8625d4/state = {"co2":470,...}
+[CO2] Received MQTT: sen66-XXXXXX/state = {"co2":470,...}
 [CO2] apply() function decoded message to [NORMAL]
 [CO2] apply() function decoded message to [470]
 ```

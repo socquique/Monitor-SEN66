@@ -3,7 +3,7 @@
     "Accesorios de Homebridge para el Monitor SEN66, plugin homebridge-mqttthing.",
     "Pegar el contenido de 'accessories' dentro del array accessories de tu",
     "config.json de Homebridge. Sustituir IP-DE-TU-DIETPI, el usuario y la",
-    "contrasena de Mosquitto, y sen66-8625d4 por el id que salga en el panel",
+    "contrasena de Mosquitto, y sen66-XXXXXX por el id que salga en el panel",
     "web del aparato si el tuyo es otro.",
     "",
     "Los cinco niveles que calcula el firmware mapean uno a uno con los cinco",
@@ -26,31 +26,31 @@
       },
       "topics": {
         "getOnline": {
-          "topic": "sen66-8625d4/status",
+          "topic": "sen66-XXXXXX/status",
           "apply": "return String(message).trim() === 'online';"
         },
         "getAirQuality": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "const m = {BUENO:'EXCELLENT', ACEPTABLE:'GOOD', REGULAR:'FAIR', MALO:'INFERIOR', 'MUY MALO':'POOR'}; return m[JSON.parse(message).level] || 'UNKNOWN';"
         },
         "getPM2_5Density": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).pm25;"
         },
         "getPM10Density": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).pm10;"
         },
         "getCarbonDioxideLevel": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).co2;"
         },
         "getCurrentTemperature": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).temperature;"
         },
         "getCurrentRelativeHumidity": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).humidity;"
         }
       }
@@ -64,15 +64,15 @@
       "password": "LA-QUE-PUSISTE",
       "topics": {
         "getOnline": {
-          "topic": "sen66-8625d4/status",
+          "topic": "sen66-XXXXXX/status",
           "apply": "return String(message).trim() === 'online';"
         },
         "getCarbonDioxideDetected": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).co2 > 1200 ? 'ABNORMAL' : 'NORMAL';"
         },
         "getCarbonDioxideLevel": {
-          "topic": "sen66-8625d4/state",
+          "topic": "sen66-XXXXXX/state",
           "apply": "return JSON.parse(message).co2;"
         }
       }
