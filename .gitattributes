@@ -1,0 +1,4 @@
+# El firmware es binario: que git no intente diferenciarlo ni contarlo como
+# codigo en las estadisticas del repositorio.
+firmware/*.bin binary linguist-generated
+ewt/*.js linguist-vendored

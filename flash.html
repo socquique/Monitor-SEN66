@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instalar el Monitor SEN66</title>
+<meta name="description" content="Instala el firmware del Monitor SEN66 desde el navegador, sin instalar nada.">
+<style>
+  :root{
+    --paper:#f6f7f5; --ink:#15181a; --ink-2:#565e60; --rule:#dde2de;
+    --accent:#1c6b46; --code:#eceee9;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .page{max-width:660px;margin:0 auto;padding:0 22px 90px}
+  p{margin:0 0 1.1em;max-width:36em}
+  a{color:var(--accent);text-underline-offset:2px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+       padding:22px 0 40px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+  .top a{color:var(--ink-2);text-decoration:none}
+  .top a[aria-current]{color:var(--ink);text-decoration:underline}
+  .kicker{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+          letter-spacing:.06em;text-transform:uppercase;margin:0 0 4px}
+  h1{font-size:31px;line-height:1.15;letter-spacing:-.02em;font-weight:660;margin:0 0 14px}
+  h2{font-size:19px;font-weight:660;margin:44px 0 12px;padding-top:22px;
+     border-top:1px solid var(--rule)}
+  ol{padding-left:22px;max-width:36em}
+  li{margin-bottom:.5em}
+  .boton{margin:26px 0 8px}
+  esp-web-install-button{--esp-tools-button-color:var(--ink);
+     --esp-tools-button-text-color:var(--paper)}
+  .nope{background:#fdf3e7;border-left:3px solid #b8791a;padding:14px 16px;
+        margin:22px 0;font-size:15.5px}
+  .aviso{border-left:3px solid #b3261e;padding:2px 0 2px 16px;margin:22px 0}
+  .aviso p{margin:0;font-size:15.5px}
+  code{font-family:var(--mono);font-size:.9em;background:var(--code);padding:1px 4px;border-radius:3px}
+  pre{background:var(--code);border-radius:5px;padding:15px 16px;overflow-x:auto;
+      font-family:var(--mono);font-size:13.5px;line-height:1.7}
+  footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--rule);
+         font-size:14px;color:var(--ink-2)}
+  [data-en]{display:none}
+  html[lang="en"] [data-es]{display:none}
+  html[lang="en"] [data-en]{display:revert}
+</style>
+<script type="module" src="ewt/install-button.js"></script>
+</head>
+<body>
+<div class="page">
+  <nav class="top">
+    <span><a href="./">← <span data-es>Monitor SEN66</span><span data-en>Monitor SEN66</span></a></span>
+    <span><a href="#" onclick="setLang('es');return false" id="b-es">español</a> ·
+          <a href="#" onclick="setLang('en');return false" id="b-en">english</a></span>
+  </nav>
+
+  <p class="kicker" data-es>Instalación</p><p class="kicker" data-en>Install</p>
+  <h1 data-es>Instalar el firmware</h1><h1 data-en>Install the firmware</h1>
+
+  <p data-es>Conecta la placa por USB-C y pulsa el botón. El navegador se
+  encarga: no hay que instalar ESP-IDF, ni Python, ni drivers.</p>
+  <p data-en>Plug the board in over USB-C and press the button. The browser does
+  the rest: no ESP-IDF, no Python, no drivers to install.</p>
+
+  <div class="nope" data-es>
+    <strong>Necesitas Chrome, Edge u Opera en un ordenador.</strong> Esto usa
+    WebSerial, que Safari y Firefox no implementan, y que desde el móvil no
+    funciona. Si tu navegador no vale, el botón aparecerá desactivado.
+  </div>
+  <div class="nope" data-en>
+    <strong>You need Chrome, Edge or Opera on a computer.</strong> This uses
+    WebSerial, which Safari and Firefox don't implement and which doesn't work on
+    phones at all. If your browser can't do it, the button will say so.
+  </div>
+
+  <div class="boton">
+    <esp-web-install-button manifest="firmware/manifest.json"></esp-web-install-button>
+  </div>
+
+  <h2 data-es>Cómo va</h2><h2 data-en>How it goes</h2>
+  <ol>
+    <li data-es>Conecta la placa al ordenador con un cable USB-C <strong>de datos</strong>. Los cables de solo carga no valen, y es el fallo más habitual.</li>
+    <li data-en>Connect the board with a USB-C <strong>data</strong> cable. Charge-only cables won't work, and that's the most common problem.</li>
+    <li data-es>Pulsa el botón y elige el puerto en la lista que saca el navegador. En un Mac suele llamarse <code>usbmodem</code>.</li>
+    <li data-en>Press the button and pick the port from the browser's list. On a Mac it's usually called <code>usbmodem</code>.</li>
+    <li data-es>Espera. Tarda alrededor de un minuto y la placa se reinicia sola al terminar.</li>
+    <li data-en>Wait. It takes about a minute and the board restarts on its own.</li>
+    <li data-es>Al arrancar sin red configurada abre un punto de acceso llamado <code>SEN66-XXXXXX</code>. Conéctate y entra en <code>192.168.4.1</code> para poner tu WiFi.</li>
+    <li data-en>With no network configured it opens an access point called <code>SEN66-XXXXXX</code>. Connect to it and open <code>192.168.4.1</code> to set your WiFi.</li>
+  </ol>
+
+  <p data-es>A partir de ahí no necesitas volver aquí: el propio aparato se
+  actualiza por WiFi desde su panel web.</p>
+  <p data-en>After that you won't need this page again: the device updates itself
+  over WiFi from its own web panel.</p>
+
+  <h2 data-es>Si no arranca</h2><h2 data-en>If it doesn't start</h2>
+  <p data-es>Algunas placas necesitan entrar a mano en modo de programación:
+  mantén pulsado <strong>BOOT</strong>, pulsa y suelta <strong>RESET</strong>, y
+  suelta BOOT. Luego vuelve a intentarlo.</p>
+  <p data-en>Some boards need to be put into programming mode by hand: hold
+  <strong>BOOT</strong>, press and release <strong>RESET</strong>, then let go of
+  BOOT. Then try again.</p>
+
+  <div class="aviso">
+    <p data-es><strong>Antes de conectar el sensor</strong>, léete el
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/CABLEADO.md">esquema de cableado</a>:
+    el SEN66 va a 3,3 V y a dos pines de distancia hay 5 V.</p>
+    <p data-en><strong>Before wiring the sensor</strong>, read the
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/CABLEADO.md">wiring guide</a>:
+    the SEN66 runs at 3.3 V and there's 5 V two pins away.</p>
+  </div>
+
+  <h2 data-es>Compilarlo tú</h2><h2 data-en>Building it yourself</h2>
+  <p data-es>Si prefieres no fiarte de un binario ajeno —que es razonable—, el
+  código está entero y se compila con ESP-IDF 5.3 o posterior:</p>
+  <p data-en>If you'd rather not trust someone else's binary — which is fair — the
+  source is all there and builds with ESP-IDF 5.3 or newer:</p>
+<pre>git clone https://github.com/socquique/Monitor-SEN66
+cd Monitor-SEN66
+idf.py build
+idf.py -p /dev/ttyUSB0 flash monitor</pre>
+
+  <footer>
+    <p data-es>Firmware <span id="v">1.0.0</span> · <a href="https://github.com/socquique/Monitor-SEN66">código en GitHub</a></p>
+    <p data-en>Firmware <span id="v2">1.0.0</span> · <a href="https://github.com/socquique/Monitor-SEN66">source on GitHub</a></p>
+  </footer>
+</div>
+<script>
+function setLang(l){
+  document.documentElement.lang=l;
+  document.getElementById('b-es').toggleAttribute('aria-current',l==='es');
+  document.getElementById('b-en').toggleAttribute('aria-current',l==='en');
+  try{localStorage.setItem('lang',l)}catch(e){}
+}
+try{
+  var s=localStorage.getItem('lang')||((navigator.language||'es').slice(0,2)==='es'?'es':'en');
+  setLang(s);
+}catch(e){setLang('es')}
+</script>
+</body>
+</html>
