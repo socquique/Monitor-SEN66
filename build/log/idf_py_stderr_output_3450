@@ -1,0 +1,22 @@
+Command: make -j 10 all
+/Users/quique/proyectos/Monitor SEN66/main/history.c: In function 'air_history_push':
+/Users/quique/proyectos/Monitor SEN66/main/history.c:69:13: error: too few arguments to function 'commit'
+   69 |             commit(); // la primera cierra la ranura real, el resto quedan vacias
+      |             ^~~~~~
+/Users/quique/proyectos/Monitor SEN66/main/history.c:41:13: note: declared here
+   41 | static void commit(air_history_t *h)
+      |             ^~~~~~
+make[2]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/history.c.obj] Error 1
+make[2]: *** Waiting for unfinished jobs....
+/Users/quique/proyectos/Monitor SEN66/main/app_main.c: In function 'clock_from_rtc':
+/Users/quique/proyectos/Monitor SEN66/main/app_main.c:66:22: error: implicit declaration of function 'timegm'; did you mean 'time'? [-Wimplicit-function-declaration]
+   66 |     const time_t t = timegm(&tm_utc);
+      |                      ^~~~~~
+      |                      time
+/Users/quique/proyectos/Monitor SEN66/main/app_main.c:72:5: error: implicit declaration of function 'settimeofday'; did you mean '_gettimeofday_r'? [-Wimplicit-function-declaration]
+   72 |     settimeofday(&tv, NULL);
+      |     ^~~~~~~~~~~~
+      |     _gettimeofday_r
+make[2]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/app_main.c.obj] Error 1
+make[1]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/all] Error 2
+make: *** [all] Error 2

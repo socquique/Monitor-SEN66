@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/quique/proyectos/Monitor SEN66/sim/build/cmake_install.cmake",
+		"/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

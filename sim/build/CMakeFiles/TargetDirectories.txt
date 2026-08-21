@@ -1,0 +1,17 @@
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/sen66_sim.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/edit_cache.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/rebuild_cache.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/list_install_components.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/install.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/install/local.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/CMakeFiles/install/strip.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/lvgl.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/lvgl_thorvg.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/lvgl_examples.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/lvgl_demos.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/edit_cache.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/rebuild_cache.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/list_install_components.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/install.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/install/local.dir
+/Users/quique/proyectos/Monitor SEN66/sim/build/lvgl/CMakeFiles/install/strip.dir

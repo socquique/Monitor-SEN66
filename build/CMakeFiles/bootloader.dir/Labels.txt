@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/Users/quique/proyectos/Monitor SEN66/build/CMakeFiles/bootloader
+/Users/quique/proyectos/Monitor SEN66/build/CMakeFiles/bootloader.rule
+/Users/quique/proyectos/Monitor SEN66/build/CMakeFiles/bootloader-complete.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/Users/quique/proyectos/Monitor SEN66/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

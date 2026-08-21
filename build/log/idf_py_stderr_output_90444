@@ -1,0 +1,16 @@
+Command: make -j 10 all
+/Users/quique/proyectos/Monitor SEN66/main/sen66.c: In function 'looks_like_sen66':
+/Users/quique/proyectos/Monitor SEN66/main/sen66.c:215:9: error: implicit declaration of function 'sen66_product_name_unlocked'; did you mean 'sen66_product_name'? [-Wimplicit-function-declaration]
+  215 |     if (sen66_product_name_unlocked(name, sizeof(name)) != ESP_OK) return false;
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |         sen66_product_name
+/Users/quique/proyectos/Monitor SEN66/main/sen66.c: At top level:
+/Users/quique/proyectos/Monitor SEN66/main/sen66.c:371:18: error: static declaration of 'sen66_product_name_unlocked' follows non-static declaration
+  371 | static esp_err_t sen66_product_name_unlocked(char *buf, size_t len)
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/quique/proyectos/Monitor SEN66/main/sen66.c:215:9: note: previous implicit declaration of 'sen66_product_name_unlocked' with type 'int()'
+  215 |     if (sen66_product_name_unlocked(name, sizeof(name)) != ESP_OK) return false;
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+make[2]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/sen66.c.obj] Error 1
+make[1]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/all] Error 2
+make: *** [all] Error 2

@@ -132,8 +132,8 @@ idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor</pre>
 
   <footer>
-    <p data-es>Firmware <span id="v">1.1.0</span> · <a href="https://github.com/socquique/Monitor-SEN66">código en GitHub</a></p>
-    <p data-en>Firmware <span id="v2">1.1.0</span> · <a href="https://github.com/socquique/Monitor-SEN66">source on GitHub</a></p>
+    <p data-es>Firmware <span id="v">-</span> · <a href="https://github.com/socquique/Monitor-SEN66">código en GitHub</a></p>
+    <p data-en>Firmware <span id="v2">-</span> · <a href="https://github.com/socquique/Monitor-SEN66">source on GitHub</a></p>
   </footer>
 </div>
 <script>
@@ -147,6 +147,16 @@ try{
   var s=localStorage.getItem('lang')||((navigator.language||'es').slice(0,2)==='es'?'es':'en');
   setLang(s);
 }catch(e){setLang('es')}
+
+// La version se lee del manifest, que es el que instala de verdad. Escrita a
+// mano se queda vieja en cuanto se publica una version nueva, que es justo lo
+// que paso.
+fetch('firmware/manifest.json').then(r=>r.json()).then(m=>{
+  for(const id of ['v','v2']){
+    const e=document.getElementById(id);
+    if(e) e.textContent=m.version;
+  }
+}).catch(()=>{});
 </script>
 </body>
 </html>

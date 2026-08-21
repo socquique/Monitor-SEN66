@@ -1,0 +1,17 @@
+Command: /Users/quique/.espressif/python_env/idf5.5_py3.14_env/bin/python -m esptool --chip esp32s3 merge_bin -o build/monitor-sen66-1.2.0.bin -f raw @flash_args
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/quique/.espressif/python_env/idf5.5_py3.14_env/lib/python3.14/site-packages/esptool/__main__.py", line 9, in <module>
+    esptool._main()
+    ~~~~~~~~~~~~~^^
+  File "/Users/quique/.espressif/python_env/idf5.5_py3.14_env/lib/python3.14/site-packages/esptool/__init__.py", line 1381, in _main
+    main()
+    ~~~~^^
+  File "/Users/quique/.espressif/python_env/idf5.5_py3.14_env/lib/python3.14/site-packages/esptool/__init__.py", line 1123, in main
+    operation_func(args)
+    ~~~~~~~~~~~~~~^^^^^^
+  File "/Users/quique/.espressif/python_env/idf5.5_py3.14_env/lib/python3.14/site-packages/esptool/cmds.py", line 1536, in merge_bin
+    with open(args.output, "wb") as of:
+         ~~~~^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'build/monitor-sen66-1.2.0.bin'

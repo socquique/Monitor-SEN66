@@ -1,0 +1,136 @@
+Command: make -j 10 all
+[  0%] Built target blank_ota_data
+[  0%] Built target sections.ld.in
+[  0%] Built target partition_table_bin
+[  0%] Built target memory.ld
+[  0%] Built target _project_elf_src
+[  0%] Built target custom_bundle
+[  0%] Performing build step for 'bootloader'
+[  0%] Built target __idf_esp_https_ota
+[  1%] Built target __idf_esp_http_server
+[  1%] Built target _project_elf_src
+[  9%] Built target __idf_log
+[  1%] Built target __idf_esp_http_client
+[ 19%] Built target __idf_esp_rom
+[  1%] Built target __idf_tcp_transport
+[ 21%] Built target __idf_esp_common
+[  1%] Built target __idf_esp_psram
+[ 30%] Built target __idf_esp_hw_support
+[  1%] Built target __idf_esp_adc
+[ 32%] Built target __idf_esp_system
+[  1%] Built target __idf_esp-tls
+[  1%] Built target __idf_http_parser
+[ 40%] Built target __idf_efuse
+[  2%] Built target __idf_driver
+[ 59%] Built target __idf_bootloader_support
+[  3%] Built target __idf_esp_driver_twai
+[ 60%] Built target __idf_esp_bootloader_format
+[  3%] Built target __idf_esp_driver_ledc
+[ 62%] Built target __idf_spi_flash
+[  3%] Built target __idf_esp_driver_i2c
+[ 68%] Built target __idf_hal
+[  3%] Built target __idf_esp_driver_sdm
+[ 69%] Built target __idf_micro-ecc
+[  3%] Built target __idf_esp_driver_tsens
+[ 92%] Built target __idf_soc
+[ 94%] Built target __idf_xtensa
+[  3%] Built target __idf_esp_driver_rmt
+[  3%] Built target __idf_esp_driver_sdspi
+[ 96%] Built target __idf_main
+[ 98%] Built target bootloader.elf
+[  4%] Built target __idf_esp_driver_sdmmc
+[100%] Built target gen_project_binary
+[  5%] Built target __idf_sdmmc
+[  5%] Built target __idf_esp_driver_i2s
+Bootloader binary size 0x57e0 bytes. 0x2820 bytes (31%) free.
+[  6%] Built target __idf_esp_driver_mcpwm
+[100%] Built target bootloader_check_size
+[  6%] Built target __idf_esp_driver_pcnt
+[100%] Built target app
+[  6%] No install step for 'bootloader'
+[  7%] Built target __idf_esp_gdbstub
+[  7%] Completed 'bootloader'
+[  7%] Built target __idf_esp_driver_spi
+[  8%] Built target __idf_esp_wifi
+[  8%] Built target bootloader
+[  8%] Built target __idf_esp_coex
+[ 12%] Built target __idf_wpa_supplicant
+[ 12%] Built target __idf_esp_netif
+[ 17%] Built target __idf_lwip
+[ 17%] Built target __idf_vfs
+[ 17%] Built target __idf_esp_vfs_console
+[ 17%] Built target __idf_esp_driver_usb_serial_jtag
+[ 17%] Built target __idf_esp_phy
+[ 18%] Built target __idf_nvs_flash
+[ 18%] Built target __idf_esp_event
+[ 18%] Built target __idf_esp_driver_uart
+[ 18%] Built target __idf_esp_ringbuf
+[ 18%] Built target __idf_esp_driver_gptimer
+[ 18%] Built target __idf_esp_timer
+[ 18%] Built target __idf_cxx
+[ 18%] Built target __idf_pthread
+[ 20%] Built target __idf_newlib
+[ 21%] Built target __idf_freertos
+[ 24%] Built target __idf_esp_hw_support
+[ 24%] Built target __idf_esp_security
+[ 25%] Built target __idf_soc
+[ 25%] Built target __idf_heap
+[ 25%] Built target __idf_log
+[ 28%] Built target __idf_hal
+[ 29%] Built target __idf_esp_rom
+[ 29%] Built target __idf_esp_common
+[ 32%] Built target __idf_esp_system
+[ 33%] Built target __idf_spi_flash
+[ 33%] Built target __idf_esp_mm
+[ 34%] Built target __idf_bootloader_support
+[ 35%] Built target __idf_efuse
+[ 36%] Built target __idf_esp_partition
+[ 36%] Built target __idf_app_update
+[ 36%] Built target __idf_esp_bootloader_format
+[ 37%] Built target __idf_esp_app_format
+[ 38%] Built target mbedtls
+[ 39%] Built target mbedx509
+[ 44%] Built target mbedcrypto
+[ 44%] Built target p256m
+[ 44%] Built target everest
+[ 44%] Built target __idf_mbedtls
+[ 44%] Built target __idf_esp_pm
+[ 45%] Built target __idf_esp_driver_gpio
+[ 45%] Built target __idf_xtensa
+[ 45%] Built target __idf_esp_eth
+[ 45%] Built target __idf_esp_driver_cam
+[ 45%] Built target __idf_esp_driver_touch_sens
+[ 45%] Built target __idf_esp_https_server
+[ 45%] Built target __idf_protobuf-c
+[ 46%] Built target __idf_console
+[ 46%] Built target __idf_esp_hid
+[ 46%] Built target __idf_esp_lcd
+[ 46%] Built target __idf_espcoredump
+[ 47%] Built target __idf_unity
+[ 47%] Built target __idf_wear_levelling
+[ 47%] Built target __idf_nvs_sec_provider
+[ 48%] Built target __idf_json
+[ 48%] Built target __idf_mqtt
+[ 49%] Built target __idf_spiffs
+[ 49%] Built target __idf_perfmon
+[ 49%] Built target __idf_rt
+[ 49%] Built target __idf_touch_element
+[ 49%] Built target __idf_usb
+[ 49%] Built target __idf_espressif__esp_lcd_co5300
+[ 49%] Built target __idf_espressif__esp_lcd_touch
+[ 49%] Built target __idf_cmock
+[ 49%] Built target __idf_app_trace
+[ 50%] Built target __idf_fatfs
+[ 51%] Built target __idf_protocomm
+[ 52%] Built target __idf_waveshare__esp_lcd_touch_cst9217
+[ 53%] Built target __idf_esp_local_ctrl
+[ 54%] Built target __idf_wifi_provisioning
+[ 96%] Built target __idf_lvgl__lvgl
+[ 97%] Built target lvgl_port_lib
+[ 98%] Built target __idf_main
+[100%] Built target __ldgen_output_sections.ld
+[100%] Built target monitor_sen66.elf
+[100%] Built target gen_project_binary
+monitor_sen66.bin binary size 0x183a40 bytes. Smallest app partition is 0x400000 bytes. 0x27c5c0 bytes (62%) free.
+[100%] Built target app_check_size
+[100%] Built target app
