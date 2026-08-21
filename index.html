@@ -3,199 +3,230 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monitor SEN66 — Calidad del aire para Home Assistant y HomeKit</title>
-<meta name="description" content="Monitor de calidad del aire de código abierto: Sensirion SEN66 y pantalla AMOLED redonda. Nueve magnitudes, todo local, sin nube.">
+<title>Monitor SEN66</title>
+<meta name="description" content="Un medidor de calidad del aire para la mesa: sensor Sensirion SEN66, pantalla redonda, Home Assistant y HomeKit. Código abierto.">
 <style>
-  /* La paleta sale del propio aparato: el negro del AMOLED y los colores
-     del semaforo de calidad del aire. */
   :root{
-    --bg:#07090a; --surface:#11161a; --line:#1e2a30;
-    --ink:#e8eef1; --ink-2:#9fb0b8; --ink-3:#66787f;
-    --good:#22c55e; --fair:#a3e635; --mid:#facc15; --poor:#f97316; --bad:#ef4444;
+    --paper:#f6f7f5; --ink:#15181a; --ink-2:#565e60; --rule:#dde2de;
+    --accent:#1c6b46; --code:#eceee9;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-       line-height:1.65;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
-  a{color:var(--good)}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .page{max-width:660px;margin:0 auto;padding:0 22px 90px}
+  p{margin:0 0 1.1em;max-width:36em}
+  a{color:var(--accent);text-underline-offset:2px}
 
-  header{padding:56px 0 40px;text-align:center}
-  .lang{display:flex;gap:8px;justify-content:flex-end;padding-top:16px}
-  .lang button{background:none;border:1px solid var(--line);color:var(--ink-3);
-    font-family:var(--mono);font-size:12px;padding:5px 11px;border-radius:6px;cursor:pointer}
-  .lang button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-3)}
-  h1{font-size:clamp(34px,7vw,54px);line-height:1.05;letter-spacing:-.03em;
-     margin:24px 0 10px;font-weight:680}
-  .tag{color:var(--ink-2);font-size:clamp(16px,2.4vw,19px);max-width:34ch;margin:0 auto 28px}
-  .hero img{width:min(300px,72vw);border-radius:50%;display:block;margin:0 auto 28px}
-  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-  .cta a{display:inline-block;padding:11px 20px;border-radius:9px;text-decoration:none;
-    font-weight:600;font-size:15px}
-  .cta .primary{background:var(--good);color:#06210f}
-  .cta .ghost{border:1px solid var(--line);color:var(--ink)}
+  .top{display:flex;justify-content:space-between;align-items:baseline;
+       padding:22px 0 40px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+  .top a{color:var(--ink-2);text-decoration:none}
+  .top a[aria-current]{color:var(--ink);text-decoration:underline}
 
-  section{padding:44px 0;border-top:1px solid var(--line)}
-  h2{font-size:24px;letter-spacing:-.015em;margin:0 0 8px;font-weight:660}
-  .sub{color:var(--ink-3);margin:0 0 24px;font-size:15px}
+  h1{font-size:31px;line-height:1.15;letter-spacing:-.02em;font-weight:660;
+     margin:0 0 14px}
+  .kicker{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+          letter-spacing:.06em;text-transform:uppercase;margin:0 0 4px}
+  h2{font-size:19px;letter-spacing:-.008em;font-weight:660;margin:44px 0 12px;
+     padding-top:22px;border-top:1px solid var(--rule)}
 
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-  .m{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px}
-  .m b{display:block;font-family:var(--mono);font-size:15px}
-  .m span{color:var(--ink-3);font-size:12.5px}
+  figure{margin:26px 0}
+  figure.solo img{width:min(280px,68vw);display:block;border-radius:50%}
+  figcaption{font-size:14px;color:var(--ink-2);margin-top:10px;max-width:34em}
 
-  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
-  .shots figure{margin:0;text-align:center}
-  .shots img{width:100%;border-radius:50%;display:block}
-  .shots figcaption{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:8px}
+  .tiras{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+         gap:20px 16px;margin:22px 0 8px}
+  .tiras img{width:100%;display:block;border-radius:50%}
+  .tiras p{font-family:var(--mono);font-size:12px;color:var(--ink-2);margin:8px 0 0}
 
-  ul.feat{list-style:none;padding:0;margin:0;display:grid;gap:12px}
-  ul.feat li{padding-left:26px;position:relative;color:var(--ink-2)}
-  ul.feat li::before{content:"";position:absolute;left:0;top:9px;width:9px;height:9px;
-    border-radius:50%;background:var(--good)}
-  ul.feat b{color:var(--ink)}
+  dl{margin:0}
+  dt{font-family:var(--mono);font-size:14px;margin-top:16px}
+  dd{margin:2px 0 0;color:var(--ink-2);max-width:34em}
 
-  table{width:100%;border-collapse:collapse;font-size:15px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
-  th{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;
-     color:var(--ink-3);font-weight:500}
-  td.mono{font-family:var(--mono)}
+  table{border-collapse:collapse;width:100%;margin:8px 0 4px;font-size:15.5px}
+  td{padding:9px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+  td:first-child{font-family:var(--mono);font-size:14px;padding-right:20px;white-space:nowrap}
+  td:last-child{color:var(--ink-2)}
 
-  pre{background:var(--surface);border:1px solid var(--line);border-radius:11px;
-      padding:16px;overflow-x:auto;font-family:var(--mono);font-size:13px;color:var(--ink-2)}
-  .warn{background:#2a1614;border:1px solid #7f2d26;border-left-width:3px;border-radius:0 10px 10px 0;
-        padding:14px 18px;color:#ffc9c2;font-size:14.5px}
-  footer{padding:40px 0 64px;color:var(--ink-3);font-size:13.5px;border-top:1px solid var(--line)}
+  pre{background:var(--code);border-radius:5px;padding:15px 16px;overflow-x:auto;
+      font-family:var(--mono);font-size:13.5px;line-height:1.7;margin:0 0 1.1em}
+  code{font-family:var(--mono);font-size:.9em;background:var(--code);padding:1px 4px;border-radius:3px}
+
+  .aviso{border-left:3px solid #b3261e;padding:2px 0 2px 16px;margin:22px 0}
+  .aviso p{margin:0;font-size:15.5px}
+
+  footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--rule);
+         font-size:14px;color:var(--ink-2)}
+  footer p{max-width:36em}
   [data-en]{display:none}
   html[lang="en"] [data-es]{display:none}
   html[lang="en"] [data-en]{display:revert}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="page">
 
-  <div class="lang">
-    <button onclick="setLang('es')" aria-pressed="true" id="b-es">ES</button>
-    <button onclick="setLang('en')" aria-pressed="false" id="b-en">EN</button>
+  <nav class="top">
+    <span>socquique</span>
+    <span><a href="#" onclick="setLang('es');return false" id="b-es">español</a> ·
+          <a href="#" onclick="setLang('en');return false" id="b-en">english</a></span>
+  </nav>
+
+  <p class="kicker">SEN66 · ESP32-S3</p>
+  <h1>Monitor SEN66</h1>
+
+  <p data-es>Un medidor de calidad del aire para tener encima de la mesa. Lleva un
+  Sensirion SEN66, que mide nueve cosas a la vez, y una pantalla redonda de 466
+  píxeles donde se leen sin acercarse.</p>
+  <p data-en>An air quality meter to sit on your desk. It uses a Sensirion SEN66,
+  which measures nine things at once, and a 466-pixel round display you can read
+  from across the room.</p>
+
+  <p data-es>Habla con Home Assistant y con HomeKit, pero no depende de ninguno de
+  los dos: si se cae la red, la pantalla sigue midiendo. No manda nada fuera de
+  tu casa.</p>
+  <p data-en>It talks to Home Assistant and HomeKit, but depends on neither: if the
+  network goes down, the display keeps measuring. Nothing leaves your house.</p>
+
+  <figure class="solo">
+    <img src="img/pagina_0.png" alt="Pantalla de resumen: un anillo verde alrededor de la palabra BUENO">
+    <figcaption data-es>La pantalla de resumen. El anillo toma el color de lo peor
+    que esté midiendo, así que basta mirarla de reojo.</figcaption>
+    <figcaption data-en>The overview screen. The ring takes the colour of the worst
+    thing it's measuring, so a glance is enough.</figcaption>
+  </figure>
+
+  <h2 data-es>Qué mide</h2><h2 data-en>What it measures</h2>
+
+  <p data-es>El SEN66 es un módulo de Sensirion que junta varios sensores en una
+  caja del tamaño de una cerilla grande, con su propio ventilador para hacer pasar
+  el aire:</p>
+  <p data-en>The SEN66 packs several sensors into one box the size of a large
+  matchbox, with its own fan to pull air through:</p>
+
+  <table>
+    <tr><td>CO₂</td><td><span data-es>en ppm. El dato que dice cuándo abrir la ventana.</span><span data-en>in ppm. The number that tells you to open a window.</span></td></tr>
+    <tr><td>PM1 · PM2.5<br>PM4 · PM10</td><td><span data-es>partículas en suspensión, en µg/m³. Las de 2,5 son las que importan para la salud.</span><span data-en>particulate matter in µg/m³. The 2.5 fraction is the one that matters for health.</span></td></tr>
+    <tr><td>VOC · NOx</td><td><span data-es>índices de compuestos volátiles y óxidos de nitrógeno. No son medidas absolutas: el sensor aprende tu ambiente y compara.</span><span data-en>volatile compound and nitrogen oxide indices. Not absolute readings: the sensor learns your baseline and compares.</span></td></tr>
+    <tr><td>°C · %RH</td><td><span data-es>temperatura y humedad relativa.</span><span data-en>temperature and relative humidity.</span></td></tr>
+  </table>
+
+  <h2 data-es>Las pantallas</h2><h2 data-en>The screens</h2>
+
+  <p data-es>Cinco páginas que se pasan con el dedo. Cuando dejas de tocarla se
+  apaga sola, y al volver a tocarla aparece donde la dejaste. Si la dejas
+  quieta un rato muestra un resumen con las nueve magnitudes.</p>
+  <p data-en>Five pages you swipe through. When you stop touching it the screen
+  turns itself off, and comes back exactly where you left it. Left alone for a
+  while it shows a summary with all nine readings.</p>
+
+  <div class="tiras">
+    <div><img src="img/pagina_1.png" alt=""><p>CO₂</p></div>
+    <div><img src="img/pagina_2.png" alt=""><p><span data-es>Partículas</span><span data-en>Particulates</span></p></div>
+    <div><img src="img/pagina_3.png" alt=""><p><span data-es>Gases</span><span data-en>Gases</span></p></div>
+    <div><img src="img/pagina_4.png" alt=""><p><span data-es>Clima</span><span data-en>Climate</span></p></div>
+    <div><img src="img/reposo.png" alt=""><p><span data-es>Reposo</span><span data-en>Idle</span></p></div>
   </div>
 
-  <header class="hero">
-    <img src="img/pagina_0.png" alt="Pantalla de resumen del monitor">
-    <h1>Monitor SEN66</h1>
-    <p class="tag" data-es>Calidad del aire en una pantalla redonda. Nueve magnitudes, todo local, sin nube.</p>
-    <p class="tag" data-en>Air quality on a round display. Nine metrics, fully local, no cloud.</p>
-    <div class="cta">
-      <a class="primary" href="https://github.com/socquique/Monitor-SEN66">
-        <span data-es>Ver en GitHub</span><span data-en>View on GitHub</span></a>
-      <a class="ghost" href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/CABLEADO.md">
-        <span data-es>Cómo montarlo</span><span data-en>How to build it</span></a>
-    </div>
-  </header>
+  <h2 data-es>En casa</h2><h2 data-en>At home</h2>
 
-  <section>
-    <h2 data-es>Qué mide</h2><h2 data-en>What it measures</h2>
-    <p class="sub" data-es>Un solo sensor, el Sensirion SEN66, da las nueve.</p>
-    <p class="sub" data-en>One sensor, the Sensirion SEN66, gives all nine.</p>
-    <div class="metrics">
-      <div class="m"><b>CO₂</b><span>ppm</span></div>
-      <div class="m"><b>PM1.0</b><span>µg/m³</span></div>
-      <div class="m"><b>PM2.5</b><span>µg/m³</span></div>
-      <div class="m"><b>PM4.0</b><span>µg/m³</span></div>
-      <div class="m"><b>PM10</b><span>µg/m³</span></div>
-      <div class="m"><b>VOC</b><span><span data-es>índice</span><span data-en>index</span></span></div>
-      <div class="m"><b>NOx</b><span><span data-es>índice</span><span data-en>index</span></span></div>
-      <div class="m"><b>°C</b><span><span data-es>temperatura</span><span data-en>temperature</span></span></div>
-      <div class="m"><b>%RH</b><span><span data-es>humedad</span><span data-en>humidity</span></span></div>
-    </div>
-  </section>
+  <dl>
+    <dt>Home Assistant</dt>
+    <dd data-es>Aparece solo. Se anuncia por MQTT y salen sus once entidades sin
+    escribir una línea de YAML.</dd>
+    <dd data-en>Shows up by itself. It announces over MQTT and eleven entities
+    appear without writing a line of YAML.</dd>
 
-  <section>
-    <h2 data-es>La pantalla</h2><h2 data-en>The display</h2>
-    <p class="sub" data-es>Cinco páginas que se pasan con el dedo, más una vista de reposo con todo a la vez. Al dejar de tocarla se apaga sola; al tocarla vuelve donde estabas.</p>
-    <p class="sub" data-en>Five pages you swipe through, plus an idle view showing everything at once. It turns itself off when you stop touching it, and comes back where you left it.</p>
-    <div class="shots">
-      <figure><img src="img/pagina_0.png" alt=""><figcaption data-es>Resumen</figcaption><figcaption data-en>Overview</figcaption></figure>
-      <figure><img src="img/pagina_1.png" alt=""><figcaption>CO₂</figcaption></figure>
-      <figure><img src="img/pagina_2.png" alt=""><figcaption data-es>Partículas</figcaption><figcaption data-en>Particulates</figcaption></figure>
-      <figure><img src="img/pagina_3.png" alt=""><figcaption data-es>Gases</figcaption><figcaption data-en>Gases</figcaption></figure>
-      <figure><img src="img/pagina_4.png" alt=""><figcaption data-es>Clima</figcaption><figcaption data-en>Climate</figcaption></figure>
-      <figure><img src="img/reposo.png" alt=""><figcaption data-es>Reposo</figcaption><figcaption data-en>Idle</figcaption></figure>
-    </div>
-  </section>
+    <dt>HomeKit</dt>
+    <dd data-es>A través de Homebridge, con el plugin mqttthing. Hay una
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/HOMEBRIDGE.md">guía paso a paso</a>
+    y la configuración lista para pegar.</dd>
+    <dd data-en>Through Homebridge, with the mqttthing plugin. There's a
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/HOMEBRIDGE.md">step-by-step guide</a>
+    and a config you can paste.</dd>
 
-  <section>
-    <h2 data-es>Qué hace</h2><h2 data-en>What it does</h2>
-    <ul class="feat">
-      <li data-es><b>Aparece solo en Home Assistant.</b> Autodescubrimiento por MQTT: se anuncia y salen sus once entidades sin tocar un YAML.</li>
-      <li data-en><b>Shows up in Home Assistant by itself.</b> MQTT auto-discovery: it announces itself and eleven entities appear without touching any YAML.</li>
-      <li data-es><b>También funciona con HomeKit</b>, vía Homebridge. Hay guía.</li>
-      <li data-en><b>Works with HomeKit too</b>, through Homebridge. There's a guide.</li>
-      <li data-es><b>Todo local.</b> Ni nube, ni cuenta, ni telemetría. Con la red caída la pantalla sigue midiendo.</li>
-      <li data-en><b>Fully local.</b> No cloud, no account, no telemetry. With the network down the display keeps measuring.</li>
-      <li data-es><b>Avisa por sonido</b> cuando el CO₂ pasa del umbral, con histéresis para que no pite cada dos por tres.</li>
-      <li data-en><b>Beeps</b> when CO₂ crosses the threshold, with hysteresis so it doesn't nag.</li>
-      <li data-es><b>Funciona con batería</b>, con un perfil de ahorro que se activa solo al desenchufar. Unas 6 h medidas.</li>
-      <li data-en><b>Runs on battery</b>, with a saving profile that kicks in when you unplug. About 6 h, measured.</li>
-      <li data-es><b>Se actualiza por WiFi</b> desde su propio panel web.</li>
-      <li data-en><b>Updates over WiFi</b> from its own web panel.</li>
-      <li data-es><b>Habla español, inglés y alemán.</b></li>
-      <li data-en><b>Speaks Spanish, English and German.</b></li>
-    </ul>
-  </section>
+    <dt data-es>Sin nada</dt><dt data-en>On its own</dt>
+    <dd data-es>También vale sin servidor. Tiene su propio panel web para
+    configurarlo y actualizarlo por WiFi.</dd>
+    <dd data-en>It also works with no server at all. It has its own web panel for
+    settings and over-the-air updates.</dd>
+  </dl>
 
-  <section>
-    <h2 data-es>Qué necesitas</h2><h2 data-en>What you need</h2>
-    <table>
-      <tr><th data-es>Pieza</th><th data-en>Part</th><th data-es>Notas</th><th data-en>Notes</th></tr>
-      <tr><td class="mono">Waveshare ESP32-S3-Touch-AMOLED-1.75</td>
-          <td><span data-es>Pantalla redonda de 466×466</span><span data-en>466×466 round display</span></td></tr>
-      <tr><td class="mono">Sensirion SEN66</td>
-          <td><span data-es>3,3 V ±5 %, I2C</span><span data-en>3.3 V ±5 %, I2C</span></td></tr>
-      <tr><td class="mono">4 <span data-es>cables</span><span data-en>wires</span></td>
-          <td>3V3, GND, SDA → IO17, SCL → IO18</td></tr>
-      <tr><td class="mono">USB-C</td>
-          <td><span data-es>Alimentación y primer flasheo</span><span data-en>Power and first flash</span></td></tr>
-    </table>
-    <p class="sub" style="margin-top:20px" data-es><b>Opcional:</b> batería LiPo 1S por el conector MX1.25 y un altavoz para el aviso sonoro.</p>
-    <p class="sub" style="margin-top:20px" data-en><b>Optional:</b> a 1S LiPo on the MX1.25 connector and a speaker for the alert.</p>
-    <div class="warn" data-es><b>Ojo al cablear:</b> el SEN66 quiere 3,3 V y el pin de al lado del header es VBUS, 5 V. Y comparte dirección I2C con el sensor de movimiento de la placa, por eso va en un bus aparte.</div>
-    <div class="warn" data-en><b>Careful when wiring:</b> the SEN66 wants 3.3 V and the neighbouring header pin is VBUS, 5 V. It also shares its I2C address with the board's motion sensor, which is why it goes on a separate bus.</div>
-  </section>
+  <h2 data-es>Lo que hace falta</h2><h2 data-en>What you need</h2>
 
-  <section>
-    <h2 data-es>Empezar</h2><h2 data-en>Getting started</h2>
-    <p class="sub" data-es>Necesitas ESP-IDF 5.3 o superior.</p>
-    <p class="sub" data-en>You need ESP-IDF 5.3 or newer.</p>
+  <table>
+    <tr><td>Waveshare<br>ESP32-S3-Touch-<br>AMOLED-1.75</td><td><span data-es>La placa, con la pantalla redonda ya montada.</span><span data-en>The board, round display included.</span></td></tr>
+    <tr><td>Sensirion SEN66</td><td><span data-es>El sensor. Trae su cable.</span><span data-en>The sensor. Comes with its cable.</span></td></tr>
+    <tr><td><span data-es>4 cables</span><span data-en>4 wires</span></td><td>3V3, GND, SDA→IO17, SCL→IO18</td></tr>
+    <tr><td>USB-C</td><td><span data-es>Alimentación. Opcionalmente una batería LiPo y un altavoz.</span><span data-en>Power. Optionally a LiPo battery and a speaker.</span></td></tr>
+  </table>
+
+  <div class="aviso">
+    <p data-es><strong>Antes de conectar nada:</strong> el SEN66 funciona a 3,3 V
+    y en ese conector, a dos pines de distancia, hay 5 V. Y comparte dirección I2C
+    con el acelerómetro que la placa lleva soldado, así que va en un bus aparte.
+    Todo está explicado en el
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/CABLEADO.md">esquema de cableado</a>.</p>
+    <p data-en><strong>Before connecting anything:</strong> the SEN66 runs at 3.3 V
+    and there's 5 V two pins away on that header. It also shares its I2C address
+    with the accelerometer soldered to the board, so it goes on a separate bus.
+    It's all in the
+    <a href="https://github.com/socquique/Monitor-SEN66/blob/main/docs/CABLEADO.md">wiring guide</a>.</p>
+  </div>
+
+  <h2 data-es>Compilarlo</h2><h2 data-en>Building it</h2>
+
+  <p data-es>Hace falta ESP-IDF 5.3 o posterior.</p>
+  <p data-en>You'll need ESP-IDF 5.3 or newer.</p>
+
 <pre>git clone https://github.com/socquique/Monitor-SEN66
 cd Monitor-SEN66
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor</pre>
-    <p class="sub" data-es>Al arrancar sin red configurada abre un punto de acceso propio. Te conectas, rellenas WiFi y broker MQTT, y listo.</p>
-    <p class="sub" data-en>With no network configured it opens its own access point. Connect, fill in WiFi and MQTT broker, done.</p>
-    <p class="sub" data-es>Hay un <b>simulador de escritorio</b> que ejecuta la misma interfaz contra SDL2, para trastear con la pantalla sin tener el aparato delante.</p>
-    <p class="sub" data-en>There's a <b>desktop simulator</b> running the same UI on SDL2, to play with the display without the hardware.</p>
-  </section>
+
+  <p data-es>La primera vez abre un punto de acceso propio; te conectas, le dices
+  cuál es tu WiFi y ya está. A partir de ahí se actualiza por la red.</p>
+  <p data-en>The first time it opens its own access point; you connect, tell it
+  your WiFi, and that's it. From then on it updates over the network.</p>
+
+  <p data-es>Hay también un <strong>simulador de escritorio</strong> que ejecuta la
+  misma interfaz sobre SDL2. Las capturas de esta página salen de ahí: es
+  literalmente el mismo código que corre en la placa.</p>
+  <p data-en>There's also a <strong>desktop simulator</strong> running the same UI on
+  SDL2. The screenshots on this page come from it — it's literally the same code
+  that runs on the board.</p>
 
   <footer>
-    <p data-es>Licencia <a href="https://github.com/socquique/Monitor-SEN66/blob/main/LICENSE">PolyForm Noncommercial 1.0.0</a>: úsalo, modifícalo y compártelo para lo que quieras que no sea vender. Proyecto doméstico, no un instrumento de medida certificado.</p>
-    <p data-en><a href="https://github.com/socquique/Monitor-SEN66/blob/main/LICENSE">PolyForm Noncommercial 1.0.0</a>: use it, change it, share it for anything that isn't selling. A home project, not a certified measuring instrument.</p>
-    <p data-es>La idea salió del <a href="https://makerworld.com/es/models/3029930-powerdot-air-home-assistant-air-sensor">PowerDot Air</a> de Scoolt96. Su firmware es cerrado; éste está escrito desde cero para otra pantalla.</p>
-    <p data-en>The idea came from Scoolt96's <a href="https://makerworld.com/en/models/3029930-powerdot-air-home-assistant-air-sensor">PowerDot Air</a>. Its firmware is closed; this one is written from scratch for a different display.</p>
+    <p data-es><a href="https://github.com/socquique/Monitor-SEN66">Código en GitHub</a>,
+    bajo <a href="https://github.com/socquique/Monitor-SEN66/blob/main/LICENSE">licencia PolyForm Noncommercial</a>:
+    úsalo y modifícalo para lo que quieras que no sea vender.</p>
+    <p data-en><a href="https://github.com/socquique/Monitor-SEN66">Source on GitHub</a>,
+    under the <a href="https://github.com/socquique/Monitor-SEN66/blob/main/LICENSE">PolyForm Noncommercial license</a>:
+    use it and change it for anything that isn't selling it.</p>
+
+    <p data-es>Es un proyecto casero, no un instrumento de medida certificado. La
+    idea vino del <a href="https://makerworld.com/es/models/3029930-powerdot-air-home-assistant-air-sensor">PowerDot Air</a>
+    de Scoolt96, que hace algo parecido con otra pantalla; su firmware es cerrado
+    y éste está escrito de cero.</p>
+    <p data-en>This is a home project, not a certified measuring instrument. The
+    idea came from Scoolt96's <a href="https://makerworld.com/en/models/3029930-powerdot-air-home-assistant-air-sensor">PowerDot Air</a>,
+    which does something similar on a different display; its firmware is closed and
+    this one is written from scratch.</p>
   </footer>
 </div>
 <script>
 function setLang(l){
-  document.documentElement.lang = l;
-  document.getElementById('b-es').setAttribute('aria-pressed', l==='es');
-  document.getElementById('b-en').setAttribute('aria-pressed', l==='en');
-  try{ localStorage.setItem('lang', l); }catch(e){}
+  document.documentElement.lang=l;
+  document.getElementById('b-es').toggleAttribute('aria-current',l==='es');
+  document.getElementById('b-en').toggleAttribute('aria-current',l==='en');
+  try{localStorage.setItem('lang',l)}catch(e){}
 }
 try{
-  var saved = localStorage.getItem('lang');
-  if(!saved) saved = (navigator.language||'es').slice(0,2)==='es' ? 'es' : 'en';
-  setLang(saved);
-}catch(e){}
+  var s=localStorage.getItem('lang')||((navigator.language||'es').slice(0,2)==='es'?'es':'en');
+  setLang(s);
+}catch(e){setLang('es')}
 </script>
 </body>
 </html>
