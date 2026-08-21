@@ -37,6 +37,7 @@ void settings_defaults(settings_t *s)
     s->alarm_co2_ppm = 1200;
     s->alarm_clear_ppm = 1000; // histeresis: no pita cada vez que roza el umbral
     s->alarm_volume = 60;
+    strcpy(s->lang, "es");
 }
 
 esp_err_t settings_load(void)

@@ -235,8 +235,14 @@ void ha_mqtt_publish(const air_sample_t *s)
                       n > 1 ? "," : "", air_metric_key((air_metric_t)m),
                       air_metric_decimals((air_metric_t)m), s->v[m]);
     }
+    // El nivel va como identificador estable en ingles, NO traducido: si
+    // cambiara con el idioma de la pantalla romperia las automatizaciones de
+    // Home Assistant, que comparan contra el valor.
+    static const char *const NIVEL[] = {"good", "fair", "moderate", "poor", "bad"};
+    const air_level_t lvl = air_overall(s);
     n += snprintf(json + n, sizeof(json) - n, "%s\"level\":\"%s\",\"rssi\":%d}",
-                  n > 1 ? "," : "", air_level_text(air_overall(s)), net_rssi());
+                  n > 1 ? "," : "",
+                  lvl < AIR_LVL_COUNT ? NIVEL[lvl] : "unknown", net_rssi());
 
     // RETENIDO a proposito: quien se suscriba despues (Home Assistant o
     // Homebridge al reiniciar) recibe el ultimo estado al instante en vez de

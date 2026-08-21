@@ -33,6 +33,7 @@
 #include "net.h"
 #include "pmu_axp2101.h"
 #include "sound.h"
+#include "i18n.h"
 #include "rtc_pcf85063.h"
 #include "sen66.h"
 #include "settings.h"
@@ -349,15 +350,15 @@ static void status_message(char *buf, size_t len)
         ? (uint32_t)((esp_timer_get_time() - s_last_read_us) / 1000000) : UINT32_MAX;
 
     if (!s_sensor_ok) {
-        snprintf(buf, len, "sin sensor - revisa el I2C");
+        snprintf(buf, len, "%s", T(STR_NO_SENSOR));
     } else if (!s_had_reading) {
-        snprintf(buf, len, "sensor calentando");
+        snprintf(buf, len, "%s", T(STR_WARMING));
     } else if (age > SAMPLE_STALE_S) {
         // Antes esto tambien decia "calentando", que a las cinco horas de
         // funcionamiento es mentira.
-        snprintf(buf, len, "sensor no responde");
+        snprintf(buf, len, "%s", T(STR_NOT_RESPONDING));
     } else if (net_state() == NET_PORTAL) {
-        snprintf(buf, len, "configura en %s", net_ap_ssid());
+        snprintf(buf, len, T(STR_SETUP_AT), net_ap_ssid());
     } else {
         buf[0] = '\0';
     }
@@ -405,6 +406,7 @@ void app_main(void)
 
     ESP_ERROR_CHECK(settings_load());
     const settings_t *cfg = settings_get();
+    i18n_set_lang(i18n_lang_from_code(cfg->lang));
     setenv("TZ", cfg->tz, 1);
     tzset();
 

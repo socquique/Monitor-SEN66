@@ -118,6 +118,23 @@ Las clases de dispositivo van puestas (`carbon_dioxide`, `pm25`, `pm10`,
 `temperature`, `humidity`…) para que las gráficas y las unidades salgan bien.
 Los índices VOC/NOx no tienen clase porque en HA no existe: van con icono.
 
+## Idiomas
+
+La pantalla habla **español, inglés y alemán**, y se elige en el panel web.
+
+Las fuentes Montserrat de LVGL solo traen ASCII, así que el alemán necesita
+`ÄÖÜäöüß`. En vez de regenerar las cinco fuentes enteras, hay una **fuente de
+reserva** con solo esos siete glifos (`main/fonts/`, ~37 KB en total) que se
+encadena con `lv_font_t.fallback`. Las Montserrat de LVGL son `const` y viven
+en flash, así que la UI usa **copias en RAM** de ~30 bytes con el campo
+`fallback` relleno (`main/fonts/fonts.c`).
+
+El español se escribe **sin acentos** a propósito: "Particulas", "ug/m3".
+
+El valor que va por MQTT **no se traduce**: es un identificador estable en
+inglés (`good`, `fair`, `moderate`, `poor`, `bad`). Si cambiara con el idioma
+de la pantalla, rompería las automatizaciones de Home Assistant.
+
 ## La pantalla
 
 Cinco páginas, **se pasan arrastrando el dedo y no rotan solas**. Al no tocar
@@ -170,7 +187,9 @@ cd sim && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 Opciones útiles:
 
 ```bash
-./build/sen66_sim --scenario bad        # aire malo
+./build/sen66_sim --lang de            # en aleman
+./build/sen66_sim --page 2             # abre en una pagina concreta
+./build/sen66_sim --scenario bad       # aire malo
 ./build/sen66_sim --warp 60             # el tiempo corre 60x
 ./build/sen66_sim --offset 2400         # adelanta la fase del ciclo
 ./build/sen66_sim --shots /tmp/caps 5   # 5 capturas BMP y sale

@@ -47,6 +47,7 @@ typedef struct {
     uint16_t alarm_clear_ppm;// umbral de rearme (histeresis)
     uint8_t alarm_volume;    // 0..100
     uint32_t last_fan_clean;  // epoch de la ultima limpieza de ventilador
+    char lang[4];             // "es", "en" o "de"
 } settings_t;
 
 // Carga de NVS; si no hay nada guardado deja los valores por defecto.

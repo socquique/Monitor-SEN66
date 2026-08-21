@@ -35,6 +35,13 @@ add_executable(sen66_sim
     ${REPO_ROOT}/main/air.c
     ${REPO_ROOT}/main/history.c
     ${REPO_ROOT}/main/ui.c
+    ${REPO_ROOT}/main/i18n.c
+    ${REPO_ROOT}/main/fonts/fonts.c
+    ${REPO_ROOT}/main/fonts/font_de_14.c
+    ${REPO_ROOT}/main/fonts/font_de_16.c
+    ${REPO_ROOT}/main/fonts/font_de_22.c
+    ${REPO_ROOT}/main/fonts/font_de_28.c
+    ${REPO_ROOT}/main/fonts/font_de_48.c
 )
 target_include_directories(sen66_sim PRIVATE ${REPO_ROOT}/main)
 target_link_libraries(sen66_sim lvgl m)

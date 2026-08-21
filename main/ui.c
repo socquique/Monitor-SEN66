@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "lvgl.h"
+#include "fonts/fonts.h"
+#include "i18n.h"
 
 #define SCR_W 466
 #define SCR_H 466
@@ -105,7 +107,7 @@ static lv_obj_t *make_label(lv_obj_t *parent, const lv_font_t *font, uint32_t co
 static void mini_create(lv_obj_t *parent, lv_obj_t **name, lv_obj_t **value,
                         int dx, int dy, const lv_font_t *font_value)
 {
-    *name = make_label(parent, &lv_font_montserrat_14, 0x64748b);
+    *name = make_label(parent, &ui_font_14, 0x64748b);
     lv_obj_set_style_text_align(*name, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(*name, LV_ALIGN_CENTER, dx, dy);
     *value = make_label(parent, font_value, 0xffffff);
@@ -162,7 +164,7 @@ static void gauge_update(gauge_t *g, air_metric_t m, float v)
     fmt_value(buf, sizeof(buf), m, v);
     lv_label_set_text(g->value, buf);
     lv_label_set_text(g->unit, air_metric_unit_ui(m));
-    lv_label_set_text(g->caption, air_metric_label(m));
+    lv_label_set_text(g->caption, i18n_metric(m));
     // el valor cambia de anchura: realinear la unidad debajo
     lv_obj_align_to(g->unit, g->value, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 }
@@ -238,7 +240,7 @@ static void chart_refresh(lv_obj_t *chart, lv_chart_series_t *ser, air_metric_t 
 static void build_summary(lv_obj_t *tile)
 {
     gauge_create(&s_g_summary, tile, RING_D, 22,
-                 &lv_font_montserrat_28, &lv_font_montserrat_16);
+                 &ui_font_28, &ui_font_16);
     // en el resumen el centro lleva texto, no numero
     lv_obj_add_flag(s_g_summary.value, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_g_summary.unit, LV_OBJ_FLAG_HIDDEN);
@@ -248,9 +250,9 @@ static void build_summary(lv_obj_t *tile)
     // y parece un fallo de dibujo.
     lv_obj_set_style_arc_width(s_g_summary.arc, 22, LV_PART_INDICATOR);
 
-    s_sum_center = make_label(tile, &lv_font_montserrat_28, 0xffffff);
+    s_sum_center = make_label(tile, &ui_font_28, 0xffffff);
     lv_obj_align(s_sum_center, LV_ALIGN_CENTER, 0, -66);
-    s_sum_sub = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
+    s_sum_sub = make_label(tile, &ui_font_16, 0x94a3b8);
     lv_obj_align(s_sum_sub, LV_ALIGN_CENTER, 0, -32);
 
     // Rejilla 2x2 de secundarios. Con el anillo a 380 el hueco libre tiene
@@ -260,7 +262,7 @@ static void build_summary(lv_obj_t *tile)
     static const int dy[4] = {8, 8, 68, 68};
     for (int i = 0; i < 4; i++) {
         mini_create(tile, &s_sum_name[i], &s_sum_val[i], dx[i], dy[i],
-                    &lv_font_montserrat_22);
+                    &ui_font_22);
     }
 }
 
@@ -274,11 +276,11 @@ static void build_co2(lv_obj_t *tile)
     lv_obj_align(s_co2_chart, LV_ALIGN_CENTER, 0, 100);
 
     gauge_create(&s_g_co2, tile, RING_D, 22,
-                 &lv_font_montserrat_48, &lv_font_montserrat_16);
+                 &ui_font_48, &ui_font_16);
     lv_obj_align(s_g_co2.value, LV_ALIGN_CENTER, 0, -44);
     lv_obj_align(s_g_co2.caption, LV_ALIGN_CENTER, 0, -96);
 
-    s_co2_level = make_label(tile, &lv_font_montserrat_22, 0xffffff);
+    s_co2_level = make_label(tile, &ui_font_22, 0xffffff);
     lv_obj_align(s_co2_level, LV_ALIGN_CENTER, 0, 26);
 }
 
@@ -289,24 +291,24 @@ static void build_pm(lv_obj_t *tile)
     // vacio el tercio inferior. La PM2.5 es la que importa para salud, asi
     // que se lleva el centro y las otras tres acompanan.
     gauge_create(&s_g_pm, tile, RING_D, 22,
-                 &lv_font_montserrat_48, &lv_font_montserrat_16);
+                 &ui_font_48, &ui_font_16);
     lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -48);
     lv_obj_align(s_g_pm.caption, LV_ALIGN_CENTER, 0, -100);
 
-    s_pm_level = make_label(tile, &lv_font_montserrat_22, 0xffffff);
+    s_pm_level = make_label(tile, &ui_font_22, 0xffffff);
     lv_obj_align(s_pm_level, LV_ALIGN_CENTER, 0, 22);
 
     static const int dx[3] = {-95, 0, 95};
     for (int i = 0; i < 3; i++) {
         mini_create(tile, &s_pm_name[i], &s_pm_val[i], dx[i], 64,
-                    &lv_font_montserrat_22);
+                    &ui_font_22);
     }
 }
 
 static void build_gas(lv_obj_t *tile)
 {
-    lv_obj_t *title = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
-    lv_label_set_text(title, "Gases");
+    lv_obj_t *title = make_label(tile, &ui_font_16, 0x94a3b8);
+    lv_label_set_text(title, T(STR_PAGE_GASES));
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
 
     // Dos esferas de 168 centradas en x=+-88: la esquina exterior queda a 194
@@ -314,22 +316,24 @@ static void build_gas(lv_obj_t *tile)
     lv_obj_t *left = plain(tile);
     lv_obj_set_size(left, 176, 176);
     lv_obj_align(left, LV_ALIGN_CENTER, -88, 14);
-    gauge_create(&s_g_voc, left, 168, 16, &lv_font_montserrat_48, &lv_font_montserrat_14);
+    gauge_create(&s_g_voc, left, 168, 16, &ui_font_48, &ui_font_14);
 
     lv_obj_t *right = plain(tile);
     lv_obj_set_size(right, 176, 176);
     lv_obj_align(right, LV_ALIGN_CENTER, 88, 14);
-    gauge_create(&s_g_nox, right, 168, 16, &lv_font_montserrat_48, &lv_font_montserrat_14);
+    gauge_create(&s_g_nox, right, 168, 16, &ui_font_48, &ui_font_14);
 
-    lv_obj_t *hint = make_label(tile, &lv_font_montserrat_14, 0x64748b);
-    lv_label_set_text(hint, "100 = ambiente habitual");
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 134);
+    lv_obj_t *hint = make_label(tile, &ui_font_14, 0x64748b);
+    lv_label_set_text(hint, T(STR_GAS_HINT));
+    // A +134 el aviso se solapaba con el indicador de bateria, que vive a
+    // +148. Subirlo 16 px los separa.
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 118);
 }
 
 static void build_climate(lv_obj_t *tile)
 {
-    lv_obj_t *title = make_label(tile, &lv_font_montserrat_16, 0x94a3b8);
-    lv_label_set_text(title, "Clima");
+    lv_obj_t *title = make_label(tile, &ui_font_16, 0x94a3b8);
+    lv_label_set_text(title, T(STR_PAGE_CLIMATE));
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
 
     // Las dos cifras al mismo tamano: la humedad tambien es un dato, no un
@@ -337,9 +341,9 @@ static void build_climate(lv_obj_t *tile)
     // explica sola y no hace falta leyenda.
     // Lado a lado en vez de apiladas: deja sitio abajo para que la curva
     // ocupe todo el ancho, que es el efecto que se buscaba.
-    s_cl_temp = make_label(tile, &lv_font_montserrat_48, 0xf59e0b);
+    s_cl_temp = make_label(tile, &ui_font_48, 0xf59e0b);
     lv_obj_align(s_cl_temp, LV_ALIGN_CENTER, -88, -40);
-    s_cl_hum = make_label(tile, &lv_font_montserrat_48, 0x38bdf8);
+    s_cl_hum = make_label(tile, &ui_font_48, 0x38bdf8);
     lv_obj_align(s_cl_hum, LV_ALIGN_CENTER, 88, -40);
 
     // Sin anillo esta pagina puede permitirse una grafica ancha. Las dos
@@ -363,7 +367,7 @@ static void build_idle(lv_obj_t *scr)
     // Que no capture toques: el gesto tiene que llegar igual para despertar.
     lv_obj_remove_flag(s_idle_panel, LV_OBJ_FLAG_CLICKABLE);
 
-    s_idle_level = make_label(s_idle_panel, &lv_font_montserrat_28, 0xffffff);
+    s_idle_level = make_label(s_idle_panel, &ui_font_28, 0xffffff);
     lv_obj_align(s_idle_level, LV_ALIGN_CENTER, 0, -92);
 
     static const air_metric_t orden[9] = {
@@ -376,12 +380,12 @@ static void build_idle(lv_obj_t *scr)
         // Filas cada 64 px, no 72: con 72 la ultima chocaba con el indicador
         // de bateria, que vive a y=+148.
         const int dy = -40 + (i / 3) * 64;
-        lv_obj_t *name = make_label(s_idle_panel, &lv_font_montserrat_14, 0x64748b);
+        lv_obj_t *name = make_label(s_idle_panel, &ui_font_14, 0x64748b);
         lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
-        lv_label_set_text(name, air_metric_label(orden[i]));
+        lv_label_set_text(name, i18n_metric(orden[i]));
         lv_obj_align(name, LV_ALIGN_CENTER, dx, dy);
 
-        s_idle_val[orden[i]] = make_label(s_idle_panel, &lv_font_montserrat_22, 0xffffff);
+        s_idle_val[orden[i]] = make_label(s_idle_panel, &ui_font_22, 0xffffff);
         lv_obj_set_style_text_align(s_idle_val[orden[i]], LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(s_idle_val[orden[i]], LV_ALIGN_CENTER, dx, dy + 24);
     }
@@ -391,18 +395,18 @@ static void build_chrome(lv_obj_t *scr)
 {
     // Hora y estado de red DENTRO del anillo, no encima: es lo que permite
     // que el arco crezca hasta el borde sin que el texto caiga sobre el color.
-    s_status_time = make_label(scr, &lv_font_montserrat_16, 0xe2e8f0);
+    s_status_time = make_label(scr, &ui_font_16, 0xe2e8f0);
     lv_obj_align(s_status_time, LV_ALIGN_CENTER, 0, -146);
 
-    s_status_net = make_label(scr, &lv_font_montserrat_14, 0x475569);
+    s_status_net = make_label(scr, &ui_font_14, 0x475569);
     lv_obj_align(s_status_net, LV_ALIGN_CENTER, 0, -124);
 
     // La bateria va abajo, en el hueco que el anillo deja libre: ahi no
     // estorba a ninguna pagina y se ve de un vistazo.
-    s_status_bat = make_label(scr, &lv_font_montserrat_16, 0x94a3b8);
+    s_status_bat = make_label(scr, &ui_font_16, 0x94a3b8);
     lv_obj_align(s_status_bat, LV_ALIGN_CENTER, 0, 148);
 
-    s_status_msg = make_label(scr, &lv_font_montserrat_14, 0xfacc15);
+    s_status_msg = make_label(scr, &ui_font_14, 0xfacc15);
     lv_obj_align(s_status_msg, LV_ALIGN_BOTTOM_MID, 0, -52);
 
     for (int i = 0; i < UI_PAGE_COUNT; i++) {
@@ -459,6 +463,8 @@ void ui_init(air_history_t *hist, const ui_config_t *cfg,
     s_set_brightness = set_brightness;
     air_sample_clear(&s_last);
 
+    ui_fonts_init(); // copias de las Montserrat con la reserva alemana
+
     lv_obj_t *scr = lv_screen_active();
     lv_obj_set_style_bg_color(scr, col(0x000000), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
@@ -513,7 +519,7 @@ void ui_update(const air_sample_t *s)
 
     if (s_idle_panel) {
         const air_level_t glob = air_overall(s);
-        lv_label_set_text(s_idle_level, air_level_text(glob));
+        lv_label_set_text(s_idle_level, i18n_level(glob));
         lv_obj_set_style_text_color(s_idle_level, col(air_level_color(glob)), 0);
         for (int m = 0; m < AIR_METRIC_COUNT; m++) {
             if (!s_idle_val[m]) continue;
@@ -535,22 +541,26 @@ void ui_update(const air_sample_t *s)
             // El anillo del resumen no mide nada: es el semaforo. Se pinta
             // entero del color del nivel (vacio solo mientras no hay datos).
             lv_arc_set_value(s_g_summary.arc, lvl == AIR_LVL_UNKNOWN ? 0 : 1000);
-            lv_label_set_text(s_sum_center, air_level_text(lvl));
+            lv_label_set_text(s_sum_center, i18n_level(lvl));
             lv_obj_set_style_text_color(s_sum_center, col(air_level_color(lvl)), 0);
             if (lvl == AIR_LVL_UNKNOWN) {
-                lv_label_set_text(s_sum_sub, "esperando datos");
+                lv_label_set_text(s_sum_sub, T(STR_WAITING));
             } else if (lvl == AIR_LVL_GOOD) {
-                lv_label_set_text(s_sum_sub, "todo en orden");
+                lv_label_set_text(s_sum_sub, T(STR_ALL_OK));
             } else {
-                snprintf(buf, sizeof(buf), "manda el %s", air_metric_label(drv));
+                snprintf(buf, sizeof(buf), T(STR_DRIVEN_BY), i18n_metric(drv));
                 lv_label_set_text(s_sum_sub, buf);
             }
             static const air_metric_t mini[4] = {AIR_CO2, AIR_PM25, AIR_TEMP, AIR_HUM};
             // Rotulos abreviados a proposito: "Temperatura" no cabe a 62 px
             // del eje sin salirse del hueco del anillo.
-            static const char *mininame[4] = {"CO2 ppm", "PM2.5 ug/m3", "Temp C", "Humedad %"};
             for (int i = 0; i < 4; i++) {
-                lv_label_set_text(s_sum_name[i], mininame[i]);
+                // rotulo + unidad: la cifra va sola debajo y asi cabe mas grande
+                const char *rot = (mini[i] == AIR_TEMP) ? T(STR_LBL_TEMP)
+                                : (mini[i] == AIR_HUM)  ? T(STR_LBL_HUM)
+                                                        : i18n_metric(mini[i]);
+                snprintf(buf, sizeof(buf), "%s %s", rot, air_metric_unit_ui(mini[i]));
+                lv_label_set_text(s_sum_name[i], buf);
                 fmt_value(buf2, sizeof(buf2), mini[i], s->v[mini[i]]);
                 lv_label_set_text(s_sum_val[i], buf2);
                 lv_obj_set_style_text_color(s_sum_val[i],
@@ -563,7 +573,7 @@ void ui_update(const air_sample_t *s)
             lv_obj_align(s_g_co2.value, LV_ALIGN_CENTER, 0, -44);
             lv_obj_align_to(s_g_co2.unit, s_g_co2.value, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
             const air_level_t lvl = air_level(AIR_CO2, s->v[AIR_CO2]);
-            lv_label_set_text(s_co2_level, air_level_text(lvl));
+            lv_label_set_text(s_co2_level, i18n_level(lvl));
             lv_obj_set_style_text_color(s_co2_level, col(air_level_color(lvl)), 0);
             chart_refresh(s_co2_chart, s_co2_ser, AIR_CO2);
             break;
@@ -573,13 +583,13 @@ void ui_update(const air_sample_t *s)
             lv_obj_align(s_g_pm.value, LV_ALIGN_CENTER, 0, -48);
             lv_obj_align_to(s_g_pm.unit, s_g_pm.value, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
             const air_level_t lvl = air_level(AIR_PM25, s->v[AIR_PM25]);
-            lv_label_set_text(s_pm_level, air_level_text(lvl));
+            lv_label_set_text(s_pm_level, i18n_level(lvl));
             lv_obj_set_style_text_color(s_pm_level, col(air_level_color(lvl)), 0);
 
             static const air_metric_t otras[3] = {AIR_PM1, AIR_PM4, AIR_PM10};
             for (int i = 0; i < 3; i++) {
                 const float v = s->v[otras[i]];
-                lv_label_set_text(s_pm_name[i], air_metric_label(otras[i]));
+                lv_label_set_text(s_pm_name[i], i18n_metric(otras[i]));
                 fmt_value(buf2, sizeof(buf2), otras[i], v);
                 lv_label_set_text(s_pm_val[i], buf2);
                 lv_obj_set_style_text_color(s_pm_val[i],
@@ -615,7 +625,7 @@ void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg,
 
     char net[32];
     snprintf(net, sizeof(net), "%s%s%s",
-             wifi ? "wifi" : "sin wifi",
+             wifi ? "wifi" : T(STR_NO_WIFI),
              (wifi && mqtt) ? " + " : "",
              (wifi && mqtt) ? "mqtt" : "");
     lv_label_set_text(s_status_net, net);
@@ -658,6 +668,15 @@ void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown)
     *idle_s = s_idle_s;
     *dimmed = s_dimmed;
     *idle_shown = s_idle_shown;
+}
+
+void ui_goto_page(int page)
+{
+    if (page < 0 || page >= UI_PAGE_COUNT || s_page_col[page] < 0) return;
+    s_cur_col = s_page_col[page];
+    lv_tileview_set_tile_by_index(s_tv, s_cur_col, 0, LV_ANIM_OFF);
+    update_dots();
+    ui_wake();
 }
 
 void ui_wake(void)

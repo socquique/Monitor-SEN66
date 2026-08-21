@@ -21,6 +21,7 @@
 
 #include "air.h"
 #include "history.h"
+#include "i18n.h"
 #include "ui.h"
 
 #define HOR_RES 466
@@ -111,6 +112,7 @@ int main(int argc, char **argv)
     const char *shots_dir = NULL;
     int shots_count = 0;
     int warp = 1;
+    int page = -1;
     int scenario = SC_NORMAL;
     long offset = 0;
 
@@ -118,6 +120,10 @@ int main(int argc, char **argv)
         if (strcmp(argv[i], "--shots") == 0 && i + 2 < argc) {
             shots_dir = argv[++i];
             shots_count = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--page") == 0 && i + 1 < argc) {
+            page = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--lang") == 0 && i + 1 < argc) {
+            i18n_set_lang(i18n_lang_from_code(argv[++i]));
         } else if (strcmp(argv[i], "--warp") == 0 && i + 1 < argc) {
             warp = atoi(argv[++i]);
             if (warp < 1) warp = 1;
@@ -128,7 +134,7 @@ int main(int argc, char **argv)
             scenario = (strcmp(v, "good") == 0) ? SC_GOOD
                      : (strcmp(v, "bad") == 0)  ? SC_BAD : SC_NORMAL;
         } else {
-            fprintf(stderr, "uso: %s [--warp N] [--scenario good|normal|bad]"
+            fprintf(stderr, "uso: %s [--lang es|en|de] [--page 0-4] [--warp N] [--scenario good|normal|bad]"
                             " [--offset SEG] [--shots dir N]\n", argv[0]);
             return 1;
         }
@@ -158,9 +164,10 @@ int main(int argc, char **argv)
         .chart_span_min = 60,
         .brightness = 200,
         .night_brightness = 20,
-        .screen_timeout_s = shots_dir ? 6 : 20, // corto en capturas, para ver el reposo
+        .screen_timeout_s = (shots_dir && page < 0) ? 6 : 20, // reposo solo si no se pide pagina
     };
     ui_init(&s_hist, &cfg, NULL);
+    if (page >= 0) ui_goto_page(page);
 
     // En modo capturas la pagina cambia cada 3 s: disparamos 1,5 s despues de
     // cada cambio, con la animacion del tileview ya terminada.

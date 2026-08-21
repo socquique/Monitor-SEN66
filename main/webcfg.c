@@ -56,7 +56,10 @@ static const char k_page[] =
 "<div class=grid><div><label>Usuario MQTT</label><input name=mqtt_user></div>"
 "<div><label>Contrasena MQTT</label><input name=mqtt_pass type=password placeholder='(sin cambios)'></div></div>"
 "<div class=grid><div><label>Prefijo de descubrimiento</label><input name=mqtt_prefix></div>"
-"<div><label>Nombre en Home Assistant</label><input name=device_name></div></div>"
+"<div><label>Nombre en Home Assistant</label><input name=device_name></div>"
+"<div><label>Idioma de la pantalla</label><select name=lang>"
+"<option value=es>Espanol</option><option value=en>English</option>"
+"<option value=de>Deutsch</option></select></div></div>"
 "<div class=grid><div><label>Zona horaria (POSIX TZ)</label><input name=tz></div>"
 "<div><label>Servidor NTP</label><input name=ntp></div></div>"
 "<div class=grid><div><label>Brillo (1-255)</label><input name=brightness type=number min=1 max=255></div>"
@@ -176,11 +179,12 @@ static esp_err_t h_settings_get(httpd_req_t *req)
     // solo se cambian si se escribe algo.
     int n = snprintf(json, sizeof(json),
         "{\"wifi_ssid\":\"%s\",\"mqtt_uri\":\"%s\",\"mqtt_user\":\"%s\","
-        "\"mqtt_prefix\":\"%s\",\"device_name\":\"%s\",\"tz\":\"%s\",\"ntp\":\"%s\","
+        "\"mqtt_prefix\":\"%s\",\"device_name\":\"%s\",\"lang\":\"%s\","
+        "\"tz\":\"%s\",\"ntp\":\"%s\","
         "\"brightness\":%u,\"night_brightness\":%u,\"screen_timeout_s\":%u,"
         "\"page_dwell_s\":%u,\"chart_span_min\":%u,\"pages_mask\":%u,"
         "\"temp_offset\":%.1f,\"altitude_m\":%u,\"co2_asc\":%d}",
-        c->wifi_ssid, c->mqtt_uri, c->mqtt_user, c->mqtt_prefix, c->device_name,
+        c->wifi_ssid, c->mqtt_uri, c->mqtt_user, c->mqtt_prefix, c->device_name, c->lang,
         c->tz, c->ntp, c->brightness, c->night_brightness, c->screen_timeout_s,
         c->page_dwell_s, c->chart_span_min, c->pages_mask,
         c->temp_offset_dc / 10.0f, c->altitude_m, c->co2_asc ? 1 : 0);
@@ -250,6 +254,7 @@ static esp_err_t h_settings_post(httpd_req_t *req)
     copy_str(root, "mqtt_pass", c->mqtt_pass, sizeof(c->mqtt_pass), true);
     copy_str(root, "mqtt_prefix", c->mqtt_prefix, sizeof(c->mqtt_prefix), true);
     copy_str(root, "device_name", c->device_name, sizeof(c->device_name), true);
+    copy_str(root, "lang", c->lang, sizeof(c->lang), true);
     copy_str(root, "tz", c->tz, sizeof(c->tz), true);
     copy_str(root, "ntp", c->ntp, sizeof(c->ntp), true);
 

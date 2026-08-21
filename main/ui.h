@@ -49,4 +49,8 @@ void ui_set_on_battery(bool on_battery);
 // Diagnostico: segundos de inactividad acumulados y si esta atenuada.
 void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown);
 
+// Salta a una pagina. La usa el simulador para capturar todas sin tener que
+// arrastrar: al quitar la rotacion automatica ya no pasan solas.
+void ui_goto_page(int page);
+
 void ui_wake(void);
