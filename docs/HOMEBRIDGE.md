@@ -54,6 +54,14 @@ Las funciones `apply` estan probadas contra el JSON real del aparato.
 4. **Homebridge**: pegar los dos accesorios de `homebridge.json` dentro del
    array `accessories` de tu `config.json` y reiniciar.
 
+> **Editar estos accesorios SOLO como JSON.** El formulario de la interfaz de
+> Homebridge no sabe representar los temas con funcion `apply`, y al guardar
+> desde ahi —aunque solo se cambie el nombre— se lleva por delante el bloque
+> `topics` entero. El accesorio sigue apareciendo en HomeKit, pero ya no lee
+> nada, y en el registro salen errores del tipo `Cannot read properties of
+> undefined (reading 'getAirQuality')`. Usar el editor de JSON de la interfaz
+> (Config > JSON) o el fichero a mano.
+
 ## Que se ve y que no
 
 | Metrica | En HomeKit |
@@ -76,7 +84,7 @@ anade al accesorio de calidad del aire:
 ```json
 "getVOCDensity": {
   "topic": "sen66-XXXXXX/state",
-  "apply": "return JSON.parse(message).voc;"
+  "apply": "const v=JSON.parse(message).voc; return v==null?state:v;"
 },
 ```
 

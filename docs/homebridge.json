@@ -1,79 +1,66 @@
 {
-  "_comentario": [
-    "Accesorios de Homebridge para el Monitor SEN66, plugin homebridge-mqttthing.",
-    "Pegar el contenido de 'accessories' dentro del array accessories de tu",
-    "config.json de Homebridge. Sustituir IP-DE-TU-DIETPI, el usuario y la",
-    "contrasena de Mosquitto, y sen66-XXXXXX por el id que salga en el panel",
-    "web del aparato si el tuyo es otro.",
-    "",
-    "Los cinco niveles que calcula el firmware mapean uno a uno con los cinco",
-    "de HomeKit, asi que la pantalla del aparato y la app Casa dicen lo mismo.",
-    "",
-    "VOC y NOx no aparecen a proposito: HomeKit espera densidades en ug/m3 y",
-    "el SEN66 da indices adimensionales. Ver docs/HOMEBRIDGE.md."
-  ],
   "accessories": [
     {
+      "url": "mqtt://IP_DEL_BROKER:1883",
+      "username": "USUARIO_MQTT",
+      "password": "CONTRASENA_MQTT",
       "accessory": "mqttthing",
       "type": "airQualitySensor",
-      "name": "Calidad del aire",
-      "url": "mqtt://IP-DE-TU-DIETPI:1883",
-      "username": "monitor",
-      "password": "LA-QUE-PUSISTE",
+      "name": "Calidad del aire Sensirion",
       "serviceNames": {
-        "temperature": "Temperatura",
-        "humidity": "Humedad"
+        "temperature": "Temperatura Sensirion",
+        "humidity": "Humedad Sensirion"
       },
       "topics": {
         "getOnline": {
           "topic": "sen66-XXXXXX/status",
-          "apply": "return String(message).trim() === 'online';"
+          "apply": "return String(message).trim()==='online';"
         },
         "getAirQuality": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "const m = {BUENO:'EXCELLENT', ACEPTABLE:'GOOD', REGULAR:'FAIR', MALO:'INFERIOR', 'MUY MALO':'POOR'}; return m[JSON.parse(message).level] || 'UNKNOWN';"
+          "apply": "const m={good:'EXCELLENT',fair:'GOOD',moderate:'FAIR',poor:'INFERIOR',bad:'POOR',BUENO:'EXCELLENT',ACEPTABLE:'GOOD',REGULAR:'FAIR',MALO:'INFERIOR','MUY MALO':'POOR'};return m[JSON.parse(message).level]||state;"
         },
         "getPM2_5Density": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).pm25;"
+          "apply": "const d=JSON.parse(message); return d.pm25==null?state:d.pm25;"
         },
         "getPM10Density": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).pm10;"
+          "apply": "const d=JSON.parse(message); return d.pm10==null?state:d.pm10;"
         },
         "getCarbonDioxideLevel": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).co2;"
+          "apply": "const d=JSON.parse(message); return d.co2==null?state:d.co2;"
         },
         "getCurrentTemperature": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).temperature;"
+          "apply": "const d=JSON.parse(message); return d.temperature==null?state:d.temperature;"
         },
         "getCurrentRelativeHumidity": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).humidity;"
+          "apply": "const d=JSON.parse(message); return d.humidity==null?state:d.humidity;"
         }
       }
     },
     {
+      "url": "mqtt://IP_DEL_BROKER:1883",
+      "username": "USUARIO_MQTT",
+      "password": "CONTRASENA_MQTT",
       "accessory": "mqttthing",
       "type": "carbonDioxideSensor",
-      "name": "CO2",
-      "url": "mqtt://IP-DE-TU-DIETPI:1883",
-      "username": "monitor",
-      "password": "LA-QUE-PUSISTE",
+      "name": "CO2 Sensirion",
       "topics": {
         "getOnline": {
           "topic": "sen66-XXXXXX/status",
-          "apply": "return String(message).trim() === 'online';"
+          "apply": "return String(message).trim()==='online';"
         },
         "getCarbonDioxideDetected": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).co2 > 1200 ? 'ABNORMAL' : 'NORMAL';"
+          "apply": "const c=JSON.parse(message).co2; return c==null?state:(c>1200?'ABNORMAL':'NORMAL');"
         },
         "getCarbonDioxideLevel": {
           "topic": "sen66-XXXXXX/state",
-          "apply": "return JSON.parse(message).co2;"
+          "apply": "const d=JSON.parse(message); return d.co2==null?state:d.co2;"
         }
       }
     }
