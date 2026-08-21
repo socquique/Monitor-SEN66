@@ -67,6 +67,44 @@ Firefox no implementan WebSerial.)
 
 ---
 
+## Etiquetas
+
+En ingles, que es lo que mas alcance da: MakerWorld traduce la descripcion
+pero **las etiquetas se buscan tal cual se escriben**.
+
+**Imprescindibles** — lo que la gente teclea de verdad:
+
+```
+air quality monitor, co2 monitor, co2, sen66, sensirion, esp32, esp32-s3,
+home assistant, homekit, mqtt, smart home, iot, pm2.5, particulate matter,
+voc, waveshare, round display, amoled, desk gadget, sensor enclosure,
+open source
+```
+
+**Por que estas y no otras**
+
+- `homekit` y `home assistant` juntas: el PowerDot solo tiene la segunda, asi
+  que ahi hay busquedas que nadie mas esta cubriendo.
+- `sen66` y `sensirion` sueltas: quien ya tiene el sensor comprado busca eso.
+- `round display` y `amoled`: es la diferencia fisica, y quien busca eso llega
+  al sitio correcto.
+- `open source`: tu firmware se puede leer y el del PowerDot no.
+
+**Lo que NO hay que poner**
+
+Nada que no sea cierto por muchas visitas que traiga. En concreto **`esphome`**,
+que es la etiqueta obvia en este nicho y que mucha gente pondria: este
+firmware no usa ESPHome. Quien llegue buscando eso se ira decepcionado y con
+razon.
+
+Tampoco `bambu lab`, `benchy` ni parecidas: son las que usa quien intenta
+colarse en busquedas ajenas, y se nota.
+
+**Si publicas tambien en aleman**, añade `luftqualitat, feinstaub, raumluft`.
+En español, `calidad del aire, sensor de aire, domotica`.
+
+---
+
 ## Piezas necesarias
 
 | Pieza | Notas |
