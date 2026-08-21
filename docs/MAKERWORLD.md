@@ -205,43 +205,84 @@ Tres cosas que condicionan el diseño y es mejor saber antes de empezar:
 
 ---
 
-## Descripción (English)
+## Description (English) — main listing text
 
-An air quality meter to sit on your desk. It uses a **Sensirion SEN66**, which
+An air quality meter for your desk. It uses a **Sensirion SEN66**, which
 measures nine things at once, and a round AMOLED display you can read from
 across the room.
 
-It talks to **Home Assistant** and **HomeKit**, but depends on neither: if the
-network goes down, the display keeps measuring. Nothing leaves your house — no
-cloud, no account, no telemetry.
+It talks to **Home Assistant** and **Apple HomeKit**, but depends on neither.
+If the network goes down, the display keeps measuring. Nothing leaves your
+house — no cloud, no account, no telemetry.
 
-**What it measures**
+### What it measures
 
-- **CO₂** in ppm — the number that tells you to open a window
-- **Particulates** PM1.0, PM2.5, PM4.0 and PM10 in µg/m³
-- **VOC and NOx indices**
-- **Temperature and humidity**
+| | |
+|---|---|
+| **CO₂** | ppm — the number that tells you to open a window |
+| **Particulates** | PM1.0, PM2.5, PM4.0, PM10 in µg/m³ |
+| **VOC / NOx** | Sensirion indices for volatile compounds and nitrogen oxides |
+| **Climate** | temperature and relative humidity |
 
-**What it does**
+### What it does
 
-- Five pages you swipe through, plus an idle view showing all nine readings at
-  once. It turns itself off when you stop touching it.
-- **Shows up by itself** in Home Assistant: it announces over MQTT and eleven
-  entities appear without writing a line of YAML.
-- Works with **HomeKit** through Homebridge. Guide and ready-made config
-  included.
+- **Five pages** you swipe through, plus an idle view showing all nine
+  readings at once. The screen turns itself off when you stop touching it and
+  comes back exactly where you left it.
+- **Shows up by itself in Home Assistant.** MQTT auto-discovery: eleven
+  entities appear as one device, no YAML.
+- **Works with Apple HomeKit** through Homebridge — guide and ready-made
+  config included.
 - **Beeps** when CO₂ crosses your threshold, with hysteresis so it doesn't nag.
-- Runs on **battery**: about 6 hours measured with a 1000 mAh cell, with a
-  power-saving profile that kicks in when you unplug it.
-- The display speaks **Spanish, English and German**.
-- Updates **over WiFi** from its own web panel.
+- **Runs on battery**: about 6 hours measured with a 1000 mAh cell, with a
+  power-saving profile that kicks in the moment you unplug it.
+- The display speaks **English, Spanish and German**.
+- **Updates over WiFi** from its own web panel.
 
-**Open source**
+### Open source, and installed from your browser
 
-The firmware is all on GitHub and installs **straight from your browser**: plug
-the board in over USB, press a button, done. No ESP-IDF, no Python, no drivers.
-(Needs Chrome, Edge or Opera on a computer; Safari and Firefox don't implement
-WebSerial.)
+The firmware is on GitHub and installs **straight from the browser**: plug the
+board in over USB-C, press one button. No ESP-IDF, no Python, no drivers.
+Needs Chrome, Edge or Opera on a computer — Safari and Firefox don't implement
+WebSerial.
 
-- Installer: https://socquique.github.io/Monitor-SEN66/flash.html
-- Source and docs: https://github.com/socquique/Monitor-SEN66
+- **Installer:** https://socquique.github.io/Monitor-SEN66/flash.html
+- **Source and docs:** https://github.com/socquique/Monitor-SEN66
+
+---
+
+## Bill of materials
+
+| Qty | Part | Notes | Where |
+|---|---|---|---|
+| 1 | Waveshare ESP32-S3-Touch-AMOLED-1.75 | SKU 31261. Round 466×466 AMOLED, touch, display included. The `-B` and `-G` variants also fit | [waveshare.com](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm) |
+| 1 | Sensirion SEN66 | `SEN66-SIN-T`. Ships with its 6-wire JST GH cable; only 4 wires are used | [Mouser](https://www.mouser.com/ProductDetail/Sensirion/SEN66-SIN-T) · [DigiKey](https://www.digikey.com/en/products/detail/sensirion-ag/SEN66-SIN-T/25700945) |
+| 4 | Dupont jumper wires, female–female | To the board's 8-pin header | any electronics shop |
+| 3 | **M2 × 6 mm screws** | Fasten the board to the bezel ring | any hardware shop |
+| 1 | USB-C cable, **data** | Charge-only cables will not work — this is the single most common problem | — |
+
+**Optional**
+
+| Qty | Part | Notes |
+|---|---|---|
+| 1 | 1S LiPo battery, MX1.25 connector | ~1000 mAh gives about 6 hours. Fits the board's battery header |
+| 1 | Small 8 Ω speaker, MX1.25 | For the CO₂ alert. The board has the connector and amplifier already |
+
+> Prices and stock vary by country; the distributor links are a starting
+> point, not a recommendation.
+
+---
+
+## More gadgets on the same board
+
+All of these run on the **same Waveshare ESP32-S3-Touch-AMOLED-1.75**, so if
+you already have one you can just reflash it and print a different case.
+
+| Model | What it does |
+|---|---|
+| [**Capsule Radar**](https://makerworld.com/en/models/2907695-capsule-radar-live-flight-radar-desk-gadget) | Live ADS-B **aircraft** radar on your desk |
+| [**Capsule Radar — Marine**](https://makerworld.com/en/models/2972002-capsule-radar-marine-live-ais-ship-radar) | Live AIS **ship** radar |
+| [**TamaPoke**](https://makerworld.com/en/models/2937822-tamapoke-a-pokemon-pokeball-tamagotchi) | A Poké Ball **Tamagotchi** virtual pet |
+
+---
+
