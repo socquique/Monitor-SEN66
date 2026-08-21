@@ -1,5 +1,9 @@
 # Ficha para MakerWorld
 
+> **Publicado**: https://makerworld.com/en/models/3199590-airring-air-quality-monitor-mqtt
+>
+> Lo que sigue es el texto que se uso, conservado aqui para poder editarlo.
+
 Texto listo para copiar cuando exista la carcasa. **Los huecos marcados con
 `[...]` hay que rellenarlos con datos reales del modelo impreso**: no los
 inventes, que la gente imprime lo que pongas.

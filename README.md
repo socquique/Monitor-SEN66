@@ -1,4 +1,6 @@
-# Monitor SEN66
+# AirRing — Monitor SEN66
+
+**Carcasa imprimible en MakerWorld: [AirRing](https://makerworld.com/en/models/3199590-airring-air-quality-monitor-mqtt)**
 
 Monitor de calidad del aire para la **Waveshare ESP32-S3-Touch-AMOLED-1.75**
 (466×466 redonda) con un **Sensirion SEN66**, pantalla autónoma y
@@ -46,6 +48,8 @@ para el histórico y un simulador de escritorio para iterar la pantalla.
 | Waveshare ESP32-S3-Touch-AMOLED-1.75 | SKU 31261 (las variantes -B y -G también sirven) |
 | Sensirion SEN66 | 3,3 V ±5 %, I2C, viene con cable JST GH de 6 hilos |
 | 4 cables al header de 8 pines | 3V3, GND, SDA, SCL |
+| 3 tornillos M2×6 | Sujetan la placa al aro del bisel |
+| [Carcasa AirRing](https://makerworld.com/en/models/3199590-airring-air-quality-monitor-mqtt) | Imprimible, 0,24 mm de capa, 2 paredes, 15% de relleno |
 | Cable USB-C | alimentación y flasheo |
 
 ## Cableado — leer antes de conectar
