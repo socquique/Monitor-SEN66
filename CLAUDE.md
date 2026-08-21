@@ -112,10 +112,29 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 ## Pendiente
 
-1. Aplicar el offset de temperatura: contra el Qingping salen **+1,2 °C** de
-   autocalentamiento (y la humedad, −8,8 %, es consecuencia de eso). Mejor
-   confirmarlo antes con un termómetro independiente.
-2. Sacar al panel web los ajustes de la alarma (`alarm_*`), que solo se
-   pueden cambiar recompilando.
-3. Exponer la recalibración forzada de CO₂. Ahora mismo no hace falta: el
-   SEN66 y el Qingping coinciden al ppm.
+1. Aplicar el offset de temperatura. La comparación con el Qingping ya **no
+   vale**: están en habitaciones distintas. Hace falta un termómetro
+   independiente al lado, y ahora además dentro de la carcasa impresa.
+2. Revisar el flujo de aire de la carcasa AirRing: que el SEN66 tenga entrada
+   y salida separadas y no respire su propio aire.
+3. Fotos del cableado en la ficha de MakerWorld. El texto ya está
+   (`docs/makerworld-en.md`), pero una foto del header cableado quita la duda
+   que el texto no quita del todo.
+
+## Hecho, por si se busca
+
+- **Alarma de CO₂ y recalibración forzada** salieron al panel web en la 1.2.0.
+  La recalibración no se ejecuta en el hilo del servidor: el comando exige la
+  medición parada, así que el panel la encola y la corre `sensor_task`. Dos
+  detalles de la documentación de Sensirion que no se deducen del código: la
+  corrección devuelta lleva un **desplazamiento de 0x8000**, y hay que esperar
+  **600 ms entre parar y recalibrar**.
+- **El camino de la recalibración no está probado contra hardware**: dispararla
+  escribe en la EEPROM del sensor y solo tiene sentido al aire libre a 420 ppm.
+  Validación, encolado y rechazo de referencias imposibles sí están probados.
+- **Nunca editar los accesorios de mqttthing desde el formulario de Homebridge**:
+  borra el bloque `topics` entero, porque no sabe representar las funciones
+  `apply`. Pasó, y dejó los cuatro accesorios sin leer nada. Ver `docs/HOMEBRIDGE.md`.
+- **El nivel que va por MQTT es un token en inglés** (`good`…`bad`), no la
+  cadena traducida. Al cambiarlo se rompió el mapeo de Homebridge y el README
+  se quedó diciendo lo viejo.
