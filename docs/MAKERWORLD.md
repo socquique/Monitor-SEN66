@@ -59,6 +59,14 @@ tu casa: ni nube, ni cuenta, ni telemetría.
 - La pantalla habla **español, inglés y alemán**.
 - Se actualiza **por WiFi** desde su propio panel web.
 
+
+**Lo que hace falta para la parte domótica:** el monitor **funciona solo**, sin
+red ni cuenta ni nube. Para llevarlo a Home Assistant o a HomeKit sí hace falta
+un **broker MQTT** en tu red. Si ya tienes HA, es el complemento *Mosquitto
+broker* y un clic; si no, se instala en dos minutos en cualquier Raspberry o
+NAS y está explicado paso a paso:
+https://github.com/socquique/Monitor-SEN66/blob/main/docs/MQTT.md
+
 **Código abierto**
 
 El firmware está entero en GitHub y se instala **desde el navegador**: conectas
@@ -234,7 +242,7 @@ house — no cloud, no account, no telemetry.
   readings at once. The screen turns itself off when you stop touching it and
   comes back exactly where you left it.
 - **Shows up by itself in Home Assistant.** MQTT auto-discovery: eleven
-  entities appear as one device, no YAML.
+  entities appear as one device, no YAML. Needs an MQTT broker — see below.
 - **Works with Apple HomeKit** through Homebridge — guide and ready-made
   config included.
 - **Beeps** when CO₂ crosses your threshold, with hysteresis so it doesn't nag.
@@ -242,6 +250,27 @@ house — no cloud, no account, no telemetry.
   power-saving profile that kicks in the moment you unplug it.
 - The display speaks **English, Spanish and German**.
 - **Updates over WiFi** from its own web panel.
+
+### Smart home: what you actually need
+
+The monitor **works on its own**. It shows everything on its screen and keeps
+its own history — no network, no account, no cloud, nothing to sign up for.
+
+If you *do* want it in Home Assistant or HomeKit, there is one prerequisite:
+an **MQTT broker** on your network. That is normal for MQTT devices, but worth
+saying out loud rather than letting you find out after ordering the parts:
+
+- **Already running Home Assistant?** Install the *Mosquitto broker* add-on,
+  one click. Then the monitor appears on its own — eleven entities, no YAML.
+- **No broker yet?** Mosquitto is a two-minute install on any Raspberry Pi,
+  NAS or small Linux box. Step-by-step guide, including the two settings
+  everyone trips over:
+  https://github.com/socquique/Monitor-SEN66/blob/main/docs/MQTT.md
+- **HomeKit** goes through Homebridge with `homebridge-mqttthing`. The
+  accessories are written and tested, ready to paste:
+  https://github.com/socquique/Monitor-SEN66/blob/main/docs/HOMEBRIDGE.md
+  One honest caveat: HomeKit has no concept of a VOC or NOx *index*, so those
+  two stay on the device's own screen and web panel.
 
 ### Open source, and installed from your browser
 
