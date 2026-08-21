@@ -289,8 +289,28 @@ de pantalla `BOARD_LCD_ROTATION` según cómo quede el USB-C en la carcasa.
 
 ## Licencia
 
-[MIT](LICENSE). Haz lo que quieras con esto, pero sin garantía de ninguna
-clase: es un proyecto doméstico, no un instrumento de medida certificado.
+**[PolyForm Noncommercial 1.0.0](LICENSE).** Puedes usarlo, modificarlo y
+compartirlo libremente **para cualquier fin no comercial**: uso personal,
+investigación, docencia, organizaciones sin ánimo de lucro. Lo que no puedes
+es venderlo ni usarlo dentro de un producto o servicio de pago.
+
+Conviene decirlo claro: **esto no es software libre** en el sentido de la OSI,
+precisamente porque restringe el uso comercial. Es una decisión deliberada.
+Si quieres usarlo comercialmente, escribe y lo hablamos.
+
+Y sin garantía de ninguna clase: es un proyecto doméstico, **no un instrumento
+de medida certificado**. No lo uses para nada donde la salud de alguien
+dependa del número que muestre.
+
+### Lo que no cubre esa licencia
+
+- Las **fuentes** de `main/fonts/` derivan de Montserrat y siguen bajo
+  [SIL OFL 1.1](main/fonts/NOTICE.md).
+- Las **dependencias** (ESP-IDF, LVGL, los componentes de Espressif y
+  Waveshare) mantienen las suyas, que son permisivas.
+- Si algún día hay **modelo 3D** para imprimir, irá con su propia licencia:
+  Creative Commons desaconseja expresamente sus licencias para software, y
+  al revés PolyForm no está pensada para objetos físicos.
 
 ## Agradecimientos
 
