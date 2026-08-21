@@ -80,6 +80,18 @@ static const char k_page[] =
 "<input type=file id=fw accept='.bin'>"
 "<button class=alt onclick=ota()>Subir e instalar</button>"
 "<div id=otamsg></div></div>"
+"<h2>Copia de seguridad</h2><div class=card>"
+"<div style='color:#94a3b8;font-size:13px'>Guarda los ajustes en un fichero "
+"para recuperarlos si alguna vez se borra la memoria.</div>"
+"<button type=button class=alt onclick=\"location='/api/backup'\">Descargar</button> "
+"<button type=button class=alt onclick=\"location='/api/backup?secrets=1'\">"
+"Descargar con contrasenas</button>"
+"<div style='color:#facc15;font-size:12px;margin-top:6px'>El fichero con "
+"contrasenas lleva la de tu WiFi en claro: guardalo donde guardarias una "
+"contrasena.</div>"
+"<label>Restaurar desde fichero</label><input type=file id=bk accept=.json>"
+"<button type=button onclick=restore()>Restaurar</button>"
+"<div id=bkmsg style='margin-top:8px;color:#facc15'></div></div>"
 "<script>"
 "const M={pm1:'PM1.0',pm25:'PM2.5',pm4:'PM4.0',pm10:'PM10',co2:'CO2',"
 "voc:'VOC',nox:'NOx',temperature:'Temperatura',humidity:'Humedad'};"
@@ -103,6 +115,11 @@ static const char k_page[] =
 "const m=document.getElementById('otamsg');m.textContent='Subiendo '+f.size+' bytes...';"
 "const r=await fetch('/api/ota',{method:'POST',body:f});"
 "m.textContent=r.ok?'Instalado, reiniciando...':'Error: '+await r.text()}"
+"async function restore(){const f=document.getElementById('bk').files[0];"
+"const m=document.getElementById('bkmsg');if(!f){m.textContent='Elige un fichero';return}"
+"let d;try{d=JSON.parse(await f.text())}catch(e){m.textContent='No es un JSON valido';return}"
+"const r=await fetch('/api/settings',{method:'POST',body:JSON.stringify(d)});"
+"m.textContent=r.ok?'Restaurado. Reiniciando...':'Error al restaurar'}"
 "load();refresh();setInterval(refresh,5000);"
 "</script></html>";
 
@@ -287,6 +304,51 @@ static esp_err_t h_settings_post(httpd_req_t *req)
 // ----------------------------------------------------------- mantenimiento
 // Prueba del altavoz: sin esto no hay forma de saber si el audio funciona
 // sin esperar a que el CO2 pase del umbral.
+// Copia de seguridad de los ajustes. Por defecto SIN contrasenas: este panel
+// no tiene clave, y cualquiera en la red podria descargarse la del WiFi. Con
+// ?secrets=1 se incluyen, que es lo unico que permite restaurar de un tiron
+// tras un borrado total, pero eso lo pide el usuario a sabiendas.
+static esp_err_t h_backup(httpd_req_t *req)
+{
+    bool con_secretos = false;
+    char q[32];
+    if (httpd_req_get_url_query_str(req, q, sizeof(q)) == ESP_OK) {
+        char v[8];
+        if (httpd_query_key_value(q, "secrets", v, sizeof(v)) == ESP_OK && v[0] == '1') {
+            con_secretos = true;
+        }
+    }
+
+    const settings_t *c = settings_get();
+    char json[900];
+    int n = snprintf(json, sizeof(json),
+        "{\"wifi_ssid\":\"%s\",\"mqtt_uri\":\"%s\",\"mqtt_user\":\"%s\","
+        "\"mqtt_prefix\":\"%s\",\"device_name\":\"%s\",\"lang\":\"%s\","
+        "\"tz\":\"%s\",\"ntp\":\"%s\",\"brightness\":%u,"
+        "\"night_brightness\":%u,\"screen_timeout_s\":%u,\"chart_span_min\":%u,"
+        "\"pages_mask\":%u,\"temp_offset\":%.1f,\"altitude_m\":%u,"
+        "\"co2_asc\":%d,\"alarm_enabled\":%d,\"alarm_co2_ppm\":%u,"
+        "\"alarm_clear_ppm\":%u,\"alarm_volume\":%u",
+        c->wifi_ssid, c->mqtt_uri, c->mqtt_user, c->mqtt_prefix, c->device_name,
+        c->lang, c->tz, c->ntp, c->brightness, c->night_brightness,
+        c->screen_timeout_s, c->chart_span_min, c->pages_mask,
+        c->temp_offset_dc / 10.0, c->altitude_m, c->co2_asc,
+        c->alarm_enabled, c->alarm_co2_ppm, c->alarm_clear_ppm, c->alarm_volume);
+
+    if (con_secretos) {
+        n += snprintf(json + n, sizeof(json) - n,
+                      ",\"wifi_pass\":\"%s\",\"mqtt_pass\":\"%s\"",
+                      c->wifi_pass, c->mqtt_pass);
+    }
+    n += snprintf(json + n, sizeof(json) - n, "}");
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Content-Disposition",
+                       "attachment; filename=\"monitor-sen66.json\"");
+    httpd_resp_send(req, json, n);
+    return ESP_OK;
+}
+
 static esp_err_t h_beep(httpd_req_t *req)
 {
     if (!sound_available()) {
@@ -364,7 +426,7 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.stack_size = 8192;          // el OTA y cJSON necesitan holgura
-    cfg.max_uri_handlers = 10;
+    cfg.max_uri_handlers = 12;
     cfg.lru_purge_enable = true;
     cfg.recv_wait_timeout = 10;
     cfg.send_wait_timeout = 10;
@@ -377,6 +439,7 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
         {.uri = "/api/settings",  .method = HTTP_POST, .handler = h_settings_post},
         {.uri = "/api/fanclean",  .method = HTTP_POST, .handler = h_fanclean},
         {.uri = "/api/beep",      .method = HTTP_POST, .handler = h_beep},
+        {.uri = "/api/backup",    .method = HTTP_GET,  .handler = h_backup},
         {.uri = "/api/reboot",    .method = HTTP_POST, .handler = h_reboot},
         {.uri = "/api/ota",       .method = HTTP_POST, .handler = h_ota},
     };
