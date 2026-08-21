@@ -9,37 +9,10 @@ Las funciones `apply` estan probadas contra el JSON real del aparato.
 
 ## Montaje
 
-1. **Broker en la DietPi.** `dietpi-software` NO lo trae en su catalogo
-   (comprobado en DietPi 10.6): va por apt.
-
-   ```bash
-   apt-get install -y mosquitto mosquitto-clients
-   ```
-
-   Mosquitto 2.x de fabrica **solo escucha en localhost y rechaza conexiones
-   anonimas**: recien instalado el monitor no conecta y no dice por que.
-
-   ```bash
-   cat > /etc/mosquitto/conf.d/local.conf <<'EOF'
-   listener 1883 0.0.0.0
-   allow_anonymous false
-   password_file /etc/mosquitto/passwd
-   EOF
-   mosquitto_passwd -c /etc/mosquitto/passwd monitor
-   chown mosquitto:mosquitto /etc/mosquitto/passwd
-   chmod 0600 /etc/mosquitto/passwd
-   systemctl restart mosquitto
-   ```
-
-   Dos piedras con las que se tropieza seguro:
-
-   - **No repetir `persistence` ni `persistence_location`** en `conf.d`: ya
-     vienen en el `mosquitto.conf` del paquete de Debian y el servicio se
-     niega a arrancar con `Duplicate persistence_location value`.
-   - **El fichero de contrasenas debe ser `mosquitto:mosquitto` y 0600.** Con
-     `root:root` el broker sale con estado 13 (permiso denegado). Confunde que
-     `mosquitto_passwd`, corriendo como root, avise justo de lo contrario: el
-     que manda es el broker, que corre como `mosquitto`.
+1. **Broker**: montarlo como explica [MQTT.md](MQTT.md). Con Homebridge deja
+   el **prefijo de descubrimiento vacio** en el panel del aparato: el
+   autodescubrimiento solo lo entiende Home Assistant, y si no, quedan once
+   mensajes retenidos en el broker que no consume nadie.
 
 2. **Plugin**: desde la interfaz de Homebridge, o por consola si es la
    instalacion oficial con Node propio en `/opt/homebridge`:

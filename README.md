@@ -129,11 +129,17 @@ vuelve a abrir solo sin perder la configuración: no hay que reflashear.
 
 ## Home Assistant
 
-Con el broker configurado no hay que tocar YAML. Al conectar, el firmware
-publica mensajes de descubrimiento retenidos en
+Hace falta un broker MQTT: cómo montarlo y cómo comprobar que el aparato
+publica está en **[docs/MQTT.md](docs/MQTT.md)**. Con eso hecho:
+
+1. En HA, Ajustes > Dispositivos y servicios > **Añadir integración > MQTT**,
+   apuntando al broker con su usuario y contraseña.
+2. Nada más. **No hay que tocar YAML.**
+
+Al conectar, el firmware publica mensajes de descubrimiento retenidos en
 `homeassistant/sensor/sen66-xxxxxx/<clave>/config` y HA crea **un dispositivo
-con 11 entidades**: las nueve del sensor, una de texto con el nivel global
-("BUENO"…"MUY MALO") y la cobertura WiFi como diagnóstico.
+con 11 entidades**: las nueve del sensor, el nivel global de calidad del aire
+y la cobertura WiFi como diagnóstico.
 
 - Estado: `sen66-xxxxxx/state`, un JSON cada 10 s.
 - Disponibilidad: `sen66-xxxxxx/status` con *last will*, así que si el
@@ -143,6 +149,45 @@ con 11 entidades**: las nueve del sensor, una de texto con el nivel global
 Las clases de dispositivo van puestas (`carbon_dioxide`, `pm25`, `pm10`,
 `temperature`, `humidity`…) para que las gráficas y las unidades salgan bien.
 Los índices VOC/NOx no tienen clase porque en HA no existe: van con icono.
+
+La entidad del nivel muestra el identificador tal cual —`good`, `fair`,
+`moderate`, `poor`, `bad`— porque es lo que viaja por MQTT, sin traducir, para
+que las automatizaciones no se rompan al cambiar el idioma de la pantalla. Si
+lo quieres en castellano **en el panel, sin perder eso**, con una plantilla en
+`configuration.yaml`:
+
+```yaml
+template:
+  - sensor:
+      - name: "Calidad del aire (texto)"
+        state: >
+          {{ {'good':'Bueno','fair':'Aceptable','moderate':'Regular',
+              'poor':'Malo','bad':'Muy malo'}.get(
+              states('sensor.monitor_sen66_calidad_del_aire'), 'Desconocido') }}
+```
+
+Para automatizar, usa el identificador y no el texto:
+
+```yaml
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.monitor_sen66_co2
+    above: 1200
+```
+
+El histórico de HA guarda **10 días** por defecto (`recorder`). Para
+tendencias largas hay que subirlo o añadir estadísticas de larga duración.
+
+## HomeKit (sin Home Assistant)
+
+Si en vez de HA quieres la app **Casa** de Apple y Siri, se hace con
+Homebridge y `homebridge-mqttthing`: mismo broker
+([docs/MQTT.md](docs/MQTT.md)), distinto oyente. Los accesorios listos para
+pegar y las trampas del montaje están en
+**[docs/HOMEBRIDGE.md](docs/HOMEBRIDGE.md)**.
+
+En ese caso deja el **prefijo de descubrimiento vacío** en el panel del
+aparato: el autodescubrimiento solo lo entiende HA.
 
 ## Idiomas
 
