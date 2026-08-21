@@ -112,16 +112,25 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 ## Pendiente
 
-1. Aplicar el offset de temperatura. La comparación con el Qingping ya **no
-   vale**: están en habitaciones distintas. Hace falta un termómetro
-   independiente al lado, y ahora además dentro de la carcasa impresa.
-2. Revisar el flujo de aire de la carcasa AirRing: que el SEN66 tenga entrada
+1. Revisar el flujo de aire de la carcasa AirRing: que el SEN66 tenga entrada
    y salida separadas y no respire su propio aire.
-3. Fotos del cableado en la ficha de MakerWorld. El texto ya está
+2. Fotos del cableado en la ficha de MakerWorld. El texto ya está
    (`docs/makerworld-en.md`), pero una foto del header cableado quita la duda
    que el texto no quita del todo.
 
 ## Hecho, por si se busca
+
+- **El offset de temperatura NO se aplica, y es una decisión medida**
+  (21-08-2026). Dos horas de registro contra el Qingping daban +1,05 °C y
+  −8,4 % de humedad, y estuvimos a punto de meter un offset de −1,1 °C. Una
+  foto con un **termómetro independiente** entre los dos lo desmontó: la
+  referencia marcaba 26,1 °C y 56 %, o sea SEN66 +0,4 °C y +1,5 %, contra
+  Qingping −0,4 °C y **+8,9 %**. El descuadre de humedad era del Qingping, no
+  del SEN66. Los tres caben en 0,8 °C, dentro de la tolerancia propia del
+  SEN66 (±0,5 °C): corregir eso es ajustar a ruido.
+- **Lección de método**: comparar dos aparatos da la diferencia, nunca quién
+  acierta. Sin un tercero independiente, "centrar" uno con otro solo propaga
+  el error del que se toma como patrón.
 
 - **Alarma de CO₂ y recalibración forzada** salieron al panel web en la 1.2.0.
   La recalibración no se ejecuta en el hilo del servidor: el comando exige la
