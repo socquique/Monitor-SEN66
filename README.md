@@ -268,10 +268,17 @@ Opciones útiles:
 
 ## Ajustes (panel web)
 
-Red y MQTT, nombre en HA, zona horaria y NTP, brillo normal y atenuado,
-tiempo hasta atenuar, segundos por página, páginas visibles (máscara de
-bits), ventana de las gráficas, corrección de temperatura, altitud y
-autocalibración del CO₂.
+Red y MQTT, nombre en HA, idioma, zona horaria y NTP, brillo normal y
+atenuado, tiempo hasta atenuar, segundos por página, páginas visibles
+(máscara de bits), ventana de las gráficas, corrección de temperatura,
+altitud, autocalibración del CO₂ y el **aviso sonoro**: activarlo, el umbral
+al que salta, el umbral al que se calla y el volumen.
+
+Los dos umbrales del aviso no son el mismo número a propósito. Salta al
+subir de `alarm_co2_ppm` y no se calla hasta bajar de `alarm_clear_ppm`, y
+esa diferencia es lo que evita que pite sin parar cuando el CO₂ se queda
+rondando el límite. Si guardas el de callar por encima del de avisar, el
+panel lo baja solo y lo dice en el log.
 
 Al guardar, **el aparato se reinicia**: es la forma limpia de aplicar de una
 vez la red, el MQTT, las páginas y los ajustes del propio sensor, sin quedarse
@@ -282,6 +289,25 @@ el altavoz** y para **subir un `.bin`** y actualizar por OTA. La limpieza
 además se lanza **sola una vez por semana**, que es lo que recomienda
 Sensirion; la fecha de la última se guarda en NVS para que reiniciar no
 reinicie la cuenta.
+
+### Recalibrar el CO₂
+
+En Mantenimiento hay un botón para forzar la calibración del CO₂ contra una
+referencia conocida. **Solo tiene sentido con una referencia de verdad**: el
+aire libre son unos 420 ppm, así que se saca el aparato fuera, lejos de
+personas, se deja medir cinco minutos y se recalibra a 420. Con un número
+inventado se estropea la medida en vez de arreglarla, **y queda guardado en
+la EEPROM del sensor**.
+
+No suele hacer falta: la autocalibración automática está activada y se ajusta
+sola si el aparato ve aire fresco de vez en cuando.
+
+Por dentro, el panel solo *pide* la recalibración; quien la ejecuta es la
+tarea del sensor, porque el comando exige la medición parada y hacer el
+stop/start desde el hilo del servidor chocaría con la lectura de cada
+segundo. El aprendizaje del VOC se guarda antes de parar y se devuelve
+después, para no tirar días de aprendizaje por una recalibración. El
+resultado (la corrección aplicada, en ppm) aparece en el propio panel.
 
 ### Sobre la seguridad del panel
 

@@ -28,6 +28,14 @@ static const char *TAG = "webcfg";
 
 static httpd_handle_t s_server;
 static webcfg_sample_fn s_get_sample;
+static webcfg_recal_fn s_recal_request;
+static webcfg_recal_status_fn s_recal_status;
+
+void webcfg_set_co2_recal(webcfg_recal_fn request, webcfg_recal_status_fn status)
+{
+    s_recal_request = request;
+    s_recal_status = status;
+}
 
 // ------------------------------------------------------------------- pagina
 // Una sola pagina, sin dependencias externas (no hay internet en el portal).
@@ -72,10 +80,30 @@ static const char k_page[] =
 "<div><label>Altitud (m)</label><input name=altitude_m type=number min=0 max=3000></div></div>"
 "<label>Autocalibracion del CO2</label><select name=co2_asc>"
 "<option value=1>activada</option><option value=0>desactivada</option></select>"
+"<label>Aviso sonoro de CO2</label><select name=alarm_enabled>"
+"<option value=1>activado</option><option value=0>desactivado</option></select>"
+"<div class=grid><div><label>Avisar por encima de (ppm)</label>"
+"<input name=alarm_co2_ppm type=number min=400 max=5000></div>"
+"<div><label>Callar por debajo de (ppm)</label>"
+"<input name=alarm_clear_ppm type=number min=400 max=5000></div></div>"
+"<label>Volumen del aviso (0-100)</label>"
+"<input name=alarm_volume type=number min=0 max=100>"
+"<div style='color:#64748b;font-size:12px;margin-top:4px'>El umbral para "
+"callar tiene que ser MENOR que el de avisar: esa diferencia es la que "
+"evita que pite sin parar cuando el CO2 se queda rondando el limite.</div>"
 "<button type=submit>Guardar y reiniciar</button></form><div id=msg></div></div>"
 "<h2>Mantenimiento</h2><div class=card>"
 "<button class=alt onclick=\"post('/api/fanclean')\">Limpiar ventilador</button> "
+"<button class=alt onclick=\"post('/api/beep')\">Probar sonido</button> "
 "<button class=alt onclick=\"post('/api/reboot')\">Reiniciar</button>"
+"<label style='margin-top:14px'>Recalibrar el CO2 con una referencia (ppm)</label>"
+"<div class=grid><div><input id=frc type=number value=420 min=400 max=2000></div>"
+"<div><button class=alt onclick=recal()>Recalibrar</button></div></div>"
+"<div style='color:#facc15;font-size:12px;margin-top:6px'>Solo con una "
+"referencia de verdad: saca el aparato al aire libre, lejos de personas, "
+"dejalo medir 5 minutos y usa 420 ppm. Con un valor inventado se estropea "
+"la medida en vez de arreglarla, y queda guardado en el sensor.</div>"
+"<div id=frcmsg style='margin-top:6px'></div>"
 "<label style='margin-top:14px'>Actualizar firmware (.bin)</label>"
 "<input type=file id=fw accept='.bin'>"
 "<button class=alt onclick=ota()>Subir e instalar</button>"
@@ -102,7 +130,8 @@ static const char k_page[] =
 "h+='<tr><td>Calidad</td><td>'+(s.level||'--')+'</td></tr>';"
 "h+='<tr><td>Sensor</td><td class='+(s.sensor=='OK'?'ok':'warn')+'>'+s.sensor+'</td></tr>';"
 "h+='<tr><td>MQTT</td><td class='+(s.mqtt?'ok':'warn')+'>'+(s.mqtt?'conectado':'sin conexion')+'</td></tr>';"
-"document.getElementById('st').innerHTML=h}"
+"document.getElementById('st').innerHTML=h;"
+"if(s.co2_recal)document.getElementById('frcmsg').textContent=s.co2_recal}"
 "async function load(){const c=await(await fetch('/api/settings')).json();"
 "for(const [k,v] of Object.entries(c)){const e=document.forms.f[k];if(e)e.value=v}}"
 "document.getElementById('f').onsubmit=async ev=>{ev.preventDefault();"
@@ -111,6 +140,12 @@ static const char k_page[] =
 "document.getElementById('msg').textContent=r.ok?'Guardado. Reiniciando...':'Error al guardar'};"
 "async function post(u){const r=await fetch(u,{method:'POST'});"
 "document.getElementById('msg').textContent=r.ok?'Hecho':'Error'}"
+"async function recal(){const p=document.getElementById('frc').value;"
+"const m=document.getElementById('frcmsg');"
+"if(!confirm('Recalibrar el CO2 a '+p+' ppm? Queda guardado en el sensor.'))return;"
+"m.textContent='Pidiendo...';"
+"const r=await fetch('/api/co2recal?ppm='+p,{method:'POST'});"
+"m.textContent=await r.text()}"
 "async function ota(){const f=document.getElementById('fw').files[0];if(!f)return;"
 "const m=document.getElementById('otamsg');m.textContent='Subiendo '+f.size+' bytes...';"
 "const r=await fetch('/api/ota',{method:'POST',body:f});"
@@ -146,7 +181,7 @@ static esp_err_t h_state(httpd_req_t *req)
         snprintf(sensor, sizeof(sensor), "sin respuesta");
     }
 
-    char json[720];
+    char json[880];
     int n = snprintf(json, sizeof(json),
         "{\"name\":\"%s\",\"version\":\"%s\",\"id\":\"%s\",\"ip\":\"%s\","
         "\"rssi\":%d,\"mqtt\":%s,\"sensor\":\"%s\",\"age_s\":%u,",
@@ -180,8 +215,17 @@ static esp_err_t h_state(httpd_req_t *req)
                           air_metric_decimals((air_metric_t)m), s.v[m]);
         }
     }
-    n += snprintf(json + n, sizeof(json) - n, "\"level\":\"%s\"}",
+    n += snprintf(json + n, sizeof(json) - n, "\"level\":\"%s\"",
                   s.valid ? air_level_text(air_overall(&s)) : "");
+
+    if (s_recal_status) {
+        char recal[96];
+        s_recal_status(recal, sizeof(recal));
+        if (recal[0]) {
+            n += snprintf(json + n, sizeof(json) - n, ",\"co2_recal\":\"%s\"", recal);
+        }
+    }
+    n += snprintf(json + n, sizeof(json) - n, "}");
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json, n);
@@ -191,7 +235,7 @@ static esp_err_t h_state(httpd_req_t *req)
 static esp_err_t h_settings_get(httpd_req_t *req)
 {
     const settings_t *c = settings_get();
-    char json[640];
+    char json[900];
     // Las contrasenas nunca se devuelven; el formulario las deja en blanco y
     // solo se cambian si se escribe algo.
     int n = snprintf(json, sizeof(json),
@@ -200,11 +244,15 @@ static esp_err_t h_settings_get(httpd_req_t *req)
         "\"tz\":\"%s\",\"ntp\":\"%s\","
         "\"brightness\":%u,\"night_brightness\":%u,\"screen_timeout_s\":%u,"
         "\"page_dwell_s\":%u,\"chart_span_min\":%u,\"pages_mask\":%u,"
-        "\"temp_offset\":%.1f,\"altitude_m\":%u,\"co2_asc\":%d}",
+        "\"temp_offset\":%.1f,\"altitude_m\":%u,\"co2_asc\":%d,"
+        "\"alarm_enabled\":%d,\"alarm_co2_ppm\":%u,\"alarm_clear_ppm\":%u,"
+        "\"alarm_volume\":%u}",
         c->wifi_ssid, c->mqtt_uri, c->mqtt_user, c->mqtt_prefix, c->device_name, c->lang,
         c->tz, c->ntp, c->brightness, c->night_brightness, c->screen_timeout_s,
         c->page_dwell_s, c->chart_span_min, c->pages_mask,
-        c->temp_offset_dc / 10.0f, c->altitude_m, c->co2_asc ? 1 : 0);
+        c->temp_offset_dc / 10.0f, c->altitude_m, c->co2_asc ? 1 : 0,
+        c->alarm_enabled ? 1 : 0, c->alarm_co2_ppm, c->alarm_clear_ppm,
+        c->alarm_volume);
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json, n);
@@ -285,9 +333,23 @@ static esp_err_t h_settings_post(httpd_req_t *req)
     if (get_num(root, "temp_offset", &d))      c->temp_offset_dc = (int16_t)lrint(d * 10.0);
     if (get_num(root, "altitude_m", &d))       c->altitude_m = (uint16_t)(d < 0 ? 0 : (d > 3000 ? 3000 : d));
     if (get_num(root, "co2_asc", &d))          c->co2_asc = (d != 0);
+    if (get_num(root, "alarm_enabled", &d))    c->alarm_enabled = (d != 0);
+    if (get_num(root, "alarm_co2_ppm", &d))    c->alarm_co2_ppm = (uint16_t)(d < 400 ? 400 : (d > 5000 ? 5000 : d));
+    if (get_num(root, "alarm_clear_ppm", &d))  c->alarm_clear_ppm = (uint16_t)(d < 400 ? 400 : (d > 5000 ? 5000 : d));
+    if (get_num(root, "alarm_volume", &d))     c->alarm_volume = (uint8_t)(d < 0 ? 0 : (d > 100 ? 100 : d));
     cJSON_Delete(root);
 
+    // La histeresis solo existe si el umbral de callar queda POR DEBAJO del de
+    // avisar. Igualados o al reves, el aviso se dispararia y se cancelaria en
+    // la misma muestra: mejor corregirlo aqui que dejar el aparato pitando.
+    if (c->alarm_clear_ppm >= c->alarm_co2_ppm) {
+        c->alarm_clear_ppm = (c->alarm_co2_ppm > 500) ? c->alarm_co2_ppm - 200 : 400;
+        ESP_LOGW(TAG, "umbral de rearme por encima del de aviso: bajado a %u ppm",
+                 c->alarm_clear_ppm);
+    }
+
     display_set_brightness(c->brightness); // esto si se nota al instante
+    sound_set_volume(c->alarm_volume);     // para que el boton de prueba use el nuevo
 
     esp_err_t err = settings_save();
     if (err != ESP_OK) {
@@ -302,8 +364,6 @@ static esp_err_t h_settings_post(httpd_req_t *req)
 }
 
 // ----------------------------------------------------------- mantenimiento
-// Prueba del altavoz: sin esto no hay forma de saber si el audio funciona
-// sin esperar a que el CO2 pase del umbral.
 // Copia de seguridad de los ajustes. Por defecto SIN contrasenas: este panel
 // no tiene clave, y cualquiera en la red podria descargarse la del WiFi. Con
 // ?secrets=1 se incluyen, que es lo unico que permite restaurar de un tiron
@@ -349,6 +409,8 @@ static esp_err_t h_backup(httpd_req_t *req)
     return ESP_OK;
 }
 
+// Prueba del altavoz: sin esto no hay forma de saber si el audio funciona
+// sin esperar a que el CO2 pase del umbral.
 static esp_err_t h_beep(httpd_req_t *req)
 {
     if (!sound_available()) {
@@ -367,6 +429,31 @@ static esp_err_t h_fanclean(httpd_req_t *req)
         return ESP_FAIL;
     }
     return httpd_resp_sendstr(req, "limpiando (10 s)");
+}
+
+// Recalibracion forzada de CO2. Aqui solo se valida y se encola: el comando
+// exige la medicion parada, y pararla desde este hilo chocaria con la lectura
+// que hace la tarea del sensor cada segundo.
+static esp_err_t h_co2recal(httpd_req_t *req)
+{
+    char q[48], v[8];
+    if (httpd_req_get_url_query_str(req, q, sizeof(q)) != ESP_OK ||
+        httpd_query_key_value(q, "ppm", v, sizeof(v)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "falta ppm");
+        return ESP_FAIL;
+    }
+    const int ppm = atoi(v);
+    if (ppm < 400 || ppm > 2000) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                            "la referencia tiene que estar entre 400 y 2000 ppm");
+        return ESP_FAIL;
+    }
+    if (!s_recal_request || !s_recal_request((uint16_t)ppm)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                            "ahora no se puede: el sensor no esta midiendo o ya hay una en curso");
+        return ESP_FAIL;
+    }
+    return httpd_resp_sendstr(req, "recalibrando, tarda unos segundos...");
 }
 
 static esp_err_t h_reboot(httpd_req_t *req)
@@ -439,6 +526,7 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
         {.uri = "/api/settings",  .method = HTTP_POST, .handler = h_settings_post},
         {.uri = "/api/fanclean",  .method = HTTP_POST, .handler = h_fanclean},
         {.uri = "/api/beep",      .method = HTTP_POST, .handler = h_beep},
+        {.uri = "/api/co2recal",  .method = HTTP_POST, .handler = h_co2recal},
         {.uri = "/api/backup",    .method = HTTP_GET,  .handler = h_backup},
         {.uri = "/api/reboot",    .method = HTTP_POST, .handler = h_reboot},
         {.uri = "/api/ota",       .method = HTTP_POST, .handler = h_ota},

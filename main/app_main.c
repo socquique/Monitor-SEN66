@@ -234,6 +234,77 @@ static void alarm_check(float co2)
     }
 }
 
+// ------------------------------------------- recalibracion forzada de CO2
+// El panel web solo la pide; la ejecuta sensor_task. El comando exige la
+// medicion PARADA, y hacer el stop/start desde el hilo del servidor se
+// pisaria con la lectura de cada segundo.
+static volatile uint16_t s_recal_ppm;   // 0 = no hay peticion pendiente
+static char s_recal_msg[96];            // protegido por s_lock
+
+static void recal_set_msg(const char *m)
+{
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    strlcpy(s_recal_msg, m, sizeof(s_recal_msg));
+    xSemaphoreGive(s_lock);
+}
+
+static bool recal_request(uint16_t ppm)
+{
+    if (ppm < 400 || ppm > 2000) return false;
+    if (!s_sensor_ok || s_recal_ppm != 0) return false;
+    recal_set_msg("recalibrando...");
+    s_recal_ppm = ppm;
+    return true;
+}
+
+static void recal_status(char *out, size_t len)
+{
+    xSemaphoreTake(s_lock, portMAX_DELAY);
+    strlcpy(out, s_recal_msg, len);
+    xSemaphoreGive(s_lock);
+}
+
+// Solo desde sensor_task.
+static void recal_run(uint16_t ppm)
+{
+    char msg[96];
+
+    // Parar tira el aprendizaje del VOC, asi que se guarda antes y se devuelve
+    // despues: leer ese estado se puede en marcha, escribirlo solo parado.
+    uint8_t voc[SEN66_VOC_STATE_LEN];
+    const bool tengo_voc = (sen66_get_voc_state(voc) == ESP_OK);
+
+    uint16_t bruto = 0xFFFF;
+    esp_err_t err = sen66_stop();
+    if (err == ESP_OK) {
+        // Sensirion pide 600 ms entre parar y recalibrar. sen66_stop() ya
+        // espera de sobra, pero dejarlo escrito cuesta nada y protege de que
+        // alguien recorte esa espera algun dia.
+        vTaskDelay(pdMS_TO_TICKS(600));
+        err = sen66_forced_co2_recal(ppm, &bruto);
+    }
+
+    if (err == ESP_OK && bruto != 0xFFFF) {
+        // La correccion viene con un desplazamiento de 0x8000, en ppm.
+        const int corr = (int)bruto - 0x8000;
+        snprintf(msg, sizeof(msg), "recalibrado a %u ppm (correccion %+d ppm)", ppm, corr);
+        ESP_LOGI(TAG, "%s", msg);
+    } else {
+        snprintf(msg, sizeof(msg), "la recalibracion fallo (%s)", esp_err_to_name(err));
+        ESP_LOGW(TAG, "%s", msg);
+    }
+
+    // Volver a medir SIEMPRE, aunque haya fallado: dejar el sensor parado
+    // seria peor que no haberlo intentado.
+    if (tengo_voc) sen66_set_voc_state(voc);
+    if (sen66_start() != ESP_OK) {
+        strlcat(msg, " y el sensor no rearranca", sizeof(msg));
+        ESP_LOGE(TAG, "el sensor no rearranca tras recalibrar");
+        s_sensor_ok = false;  // que lo recoja la deteccion de sensor muerto
+    }
+    recal_set_msg(msg);
+}
+
 // Reinicia el bus y el sensor. Un tropiezo del I2C dejaba el aparato mudo
 // hasta el siguiente reinicio a mano.
 static void sensor_recover(void)
@@ -280,6 +351,11 @@ static void sensor_task(void *arg)
                     s_on_battery = on_battery; // la UI lo recoge en su tick
                 }
             }
+        }
+
+        if (s_recal_ppm != 0) {
+            recal_run(s_recal_ppm);
+            s_recal_ppm = 0;
         }
 
         if (s_sensor_ok) {
@@ -458,6 +534,7 @@ void app_main(void)
     ESP_ERROR_CHECK(net_init());
     ESP_ERROR_CHECK(net_start());
     ESP_ERROR_CHECK(webcfg_start(get_sample_for_web));
+    webcfg_set_co2_recal(recal_request, recal_status);
     ha_mqtt_start();
 
     if (pmu_available()) {
