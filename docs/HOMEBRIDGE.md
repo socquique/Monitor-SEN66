@@ -44,6 +44,7 @@ Las funciones `apply` estan probadas contra el JSON real del aparato.
 | CO2 | Nivel en ppm + accesorio de CO2 que avisa por encima de 1200 ppm |
 | Temperatura, humedad | Servicios dentro del mismo accesorio |
 | **VOC y NOx** | **No aparecen** |
+| Bateria | Nivel, estado de carga y aviso de bateria baja, si hay celda |
 
 VOC y NOx se quedan fuera a proposito: HomeKit espera densidades en ug/m3 y
 el SEN66 da *indices* adimensionales (1-500). Publicarlos como si fueran una
@@ -62,6 +63,26 @@ anade al accesorio de calidad del aire:
 ```
 
 y `"history": true`. Sabiendo que ese numero es un indice disfrazado de ug/m3.
+
+## La bateria
+
+Homebridge **no usa el autodescubrimiento**, asi que la bateria no aparece
+sola como en Home Assistant: hay que darle los temas, y ya vienen en
+`homebridge.json`. mqttthing anade un **servicio de bateria** a cualquier
+accesorio en cuanto ve `getBatteryLevel`, `getChargingState` o
+`getStatusLowBattery`.
+
+Van solo en el accesorio de calidad del aire, no en el de CO2: en los dos, la
+app Casa enseñaria dos baterias para el mismo aparato.
+
+Si el aparato **no lleva celda**, esos campos no salen en el JSON y las
+funciones `apply` devuelven el valor anterior, asi que no molestan; pero si
+nunca vas a ponerle bateria, lo limpio es quitar los tres temas.
+
+En la app Casa la bateria no es un icono aparte: sale **dentro del accesorio**,
+en sus ajustes. Y si acabas de anadirla, la app puede tardar en enterarse de
+que el accesorio tiene un servicio nuevo; forzar el cierre de la app suele
+bastar.
 
 ## El aviso de Node
 

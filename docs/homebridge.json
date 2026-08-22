@@ -39,6 +39,18 @@
         "getCurrentRelativeHumidity": {
           "topic": "sen66-XXXXXX/state",
           "apply": "const d=JSON.parse(message); return d.humidity==null?state:d.humidity;"
+        },
+        "getBatteryLevel": {
+          "topic": "sen66-XXXXXX/state",
+          "apply": "const b=JSON.parse(message).bat; return b==null?state:b;"
+        },
+        "getChargingState": {
+          "topic": "sen66-XXXXXX/state",
+          "apply": "const d=JSON.parse(message); if(d.charging==null) return state; return d.charging?'CHARGING':'NOT_CHARGING';"
+        },
+        "getStatusLowBattery": {
+          "topic": "sen66-XXXXXX/state",
+          "apply": "const d=JSON.parse(message); if(d.bat==null) return state; return d.bat<20 && !d.charging;"
         }
       }
     },
