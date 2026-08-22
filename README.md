@@ -370,6 +370,33 @@ puerta abierta.
   nunca se ventila conviene desactivarla y hacer una recalibración forzada al
   aire libre.
 
+### La carcasa y el aire
+
+El SEN66 tiene **dos entradas y una salida**, las tres en la misma cara: el
+hueco cuadrado y la membrana redonda son las entradas, y el ventilador es la
+salida. Sensirion pide dos cosas que no se cumplen solo con "no taparlas"
+([guía mecánica](https://sensirion.com/media/documents/EA641247/6977159F/PS_AN_SEN6x_Mechanical_Design_and_Assembly_Guidelines_D1.pdf)):
+
+- **Separar la salida de las entradas**, o el sensor acaba midiendo el aire
+  que él mismo acaba de expulsar.
+- **Aislar las tres del interior de la carcasa**, o el ventilador aspira aire
+  de dentro del aparato, caliente por el ESP32 y la pantalla, en vez de aire
+  de la habitación.
+
+Si añades conductos, las áreas mínimas son **56 mm² por entrada y 148 mm² en
+la salida**. Y la única orientación desaconsejada es con los agujeros **hacia
+arriba**: cae polvo dentro y el sensor envejece antes.
+
+**La carcasa AirRing cumple las dos, y está comprobado midiendo**, que es la
+única forma de saberlo:
+
+- *No aspira de dentro*: la temperatura queda a **+0,4 °C** de un termómetro
+  independiente. Si el aire viniera del interior serían varios grados.
+- *No recircula*: se enciende un incienso al lado y se cronometra la bajada de
+  PM2.5 contra un sensor de referencia. Constante de bajada **9,7 min frente a
+  8,7** del otro aparato. Si reinspirara su salida, su cola sería mucho más
+  larga que la de la habitación.
+
 ### Sobre medir el desvío
 
 Aquí van 22 horas de medidas reales contra un Qingping Air Monitor 2 y un

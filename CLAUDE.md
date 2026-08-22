@@ -112,13 +112,20 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 ## Pendiente
 
-1. Revisar el flujo de aire de la carcasa AirRing: que el SEN66 tenga entrada
-   y salida separadas y no respire su propio aire.
-2. Fotos del cableado en la ficha de MakerWorld. El texto ya está
-   (`docs/makerworld-en.md`), pero una foto del header cableado quita la duda
-   que el texto no quita del todo.
+1. Fotos del cableado en la ficha de MakerWorld. El texto ya está pegado
+   (22-08-2026); falta una foto del header cableado, que quita la duda que el
+   texto no quita del todo.
 
 ## Hecho, por si se busca
+
+- **El flujo de aire de la carcasa AirRing está verificado** (22-08-2026), no
+  supuesto. El SEN66 tiene dos entradas (hueco cuadrado y membrana) y una
+  salida (el ventilador), y Sensirion pide separarlas entre sí y aislarlas del
+  interior del aparato. Ambas comprobadas midiendo: +0,4 °C contra termómetro
+  independiente descarta que aspire de dentro de la caja, y una prueba de
+  incienso da una constante de bajada de PM2.5 de **9,7 min contra 8,7** del
+  sensor de referencia, lo que descarta que reinspire su propia salida. Datos
+  en la DietPi, `/root/prueba-humo-20260822.csv`.
 
 - **No se aplica NINGÚN offset, ni de temperatura ni de CO₂, y es una decisión
   medida** (22-08-2026): 22 h de registro contra un Qingping Air Monitor 2 más
