@@ -1,0 +1,5 @@
+Command: /Users/quique/.espressif/python_env/idf5.5_py3.14_env/bin/python -m esptool --chip esp32s3 merge_bin -o /private/tmp/claude-501/-Users-quique-proyectos-Monitor-SEN66/f4b8a894-a19a-41eb-a7fe-f9d7cb7a9204/scratchpad/monitor-sen66-1.3.0.bin -f raw @flash_args
+esptool.py --chip esp32s3 merge_bin -o /private/tmp/claude-501/-Users-quique-proyectos-Monitor-SEN66/f4b8a894-a19a-41eb-a7fe-f9d7cb7a9204/scratchpad/monitor-sen66-1.3.0.bin -f raw --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 bootloader/bootloader.bin 0x20000 monitor_sen66.bin 0x8000 partition_table/partition-table.bin 0xf000 ota_data_initial.bin
+esptool.py v4.12.dev1
+SHA digest in image updated
+Wrote 0x1a4de0 bytes to file /private/tmp/claude-501/-Users-quique-proyectos-Monitor-SEN66/f4b8a894-a19a-41eb-a7fe-f9d7cb7a9204/scratchpad/monitor-sen66-1.3.0.bin, ready to flash to offset 0x0
