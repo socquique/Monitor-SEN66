@@ -1,5 +1,6 @@
 #include "ha_mqtt.h"
 #include "net.h"
+#include "pmu_axp2101.h"
 #include "settings.h"
 #include "version.h"
 
@@ -120,6 +121,50 @@ static void publish_discovery_extras(void)
     esp_mqtt_client_publish(s_client, topic, payload, n, 0, 1);
 }
 
+// Bateria. Solo si hay celda conectada: sin ella estas entidades saldrian en
+// Home Assistant para no decir nada nunca, y un aparato enchufado a la red no
+// tiene por que enseñar un porcentaje fantasma.
+static void publish_discovery_battery(void)
+{
+    pmu_status_t b;
+    if (!pmu_available() || pmu_read(&b) != ESP_OK || !b.present) return;
+
+    const settings_t *cfg = settings_get();
+    char topic[160], payload[640];
+    int n;
+
+    // Todo va como diagnostico: es informacion del aparato, no del aire.
+    struct { const char *comp, *key, *name, *extra, *tpl; } ent[] = {
+        {"sensor", "battery", "Bateria",
+         "\"dev_cla\":\"battery\",\"unit_of_meas\":\"%\",\"stat_cla\":\"measurement\",",
+         "{{ value_json.bat }}"},
+        {"sensor", "bat_mv", "Tension de bateria",
+         "\"dev_cla\":\"voltage\",\"unit_of_meas\":\"mV\",\"stat_cla\":\"measurement\",",
+         "{{ value_json.bat_mv }}"},
+        {"binary_sensor", "charging", "Cargando",
+         "\"dev_cla\":\"battery_charging\",\"pl_on\":\"ON\",\"pl_off\":\"OFF\",",
+         "{{ 'ON' if value_json.charging else 'OFF' }}"},
+        {"binary_sensor", "usb", "Alimentacion USB",
+         "\"dev_cla\":\"plug\",\"pl_on\":\"ON\",\"pl_off\":\"OFF\",",
+         "{{ 'ON' if value_json.usb else 'OFF' }}"},
+    };
+
+    for (size_t i = 0; i < sizeof(ent) / sizeof(ent[0]); i++) {
+        snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config",
+                 cfg->mqtt_prefix, ent[i].comp, net_device_id(), ent[i].key);
+        n = snprintf(payload, sizeof(payload),
+            "{\"name\":\"%s\",\"uniq_id\":\"%s_%s\","
+            "\"stat_t\":\"%s\",\"avty_t\":\"%s\",\"val_tpl\":\"%s\","
+            "%s\"ent_cat\":\"diagnostic\",",
+            ent[i].name, net_device_id(), ent[i].key,
+            s_state_topic, s_avty_topic, ent[i].tpl, ent[i].extra);
+        n += append_device(payload + n, sizeof(payload) - n);
+        n += snprintf(payload + n, sizeof(payload) - n, "}");
+        esp_mqtt_client_publish(s_client, topic, payload, n, 0, 1);
+    }
+    ESP_LOGI(TAG, "bateria detectada: publicadas sus 4 entidades");
+}
+
 static void publish_discovery(void)
 {
     // Prefijo vacio = no queremos autodescubrimiento (p.ej. se usa Homebridge
@@ -131,7 +176,8 @@ static void publish_discovery(void)
     }
     for (int m = 0; m < AIR_METRIC_COUNT; m++) publish_discovery_one((air_metric_t)m);
     publish_discovery_extras();
-    ESP_LOGI(TAG, "descubrimiento publicado (%d entidades)", AIR_METRIC_COUNT + 2);
+    publish_discovery_battery();
+    ESP_LOGI(TAG, "descubrimiento publicado (%d entidades del aire)", AIR_METRIC_COUNT + 2);
 }
 
 static void mqtt_event(void *arg, esp_event_base_t base, int32_t id, void *data)
@@ -225,7 +271,7 @@ void ha_mqtt_publish(const air_sample_t *s)
 {
     if (!s_client || !s_connected || !s->valid || !s_available) return;
 
-    char json[420];
+    char json[512];
     int n = snprintf(json, sizeof(json), "{");
     for (int m = 0; m < AIR_METRIC_COUNT; m++) {
         // Las metricas sin dato se omiten: HA conserva el ultimo valor
@@ -240,9 +286,18 @@ void ha_mqtt_publish(const air_sample_t *s)
     // Home Assistant, que comparan contra el valor.
     static const char *const NIVEL[] = {"good", "fair", "moderate", "poor", "bad"};
     const air_level_t lvl = air_overall(s);
-    n += snprintf(json + n, sizeof(json) - n, "%s\"level\":\"%s\",\"rssi\":%d}",
+    n += snprintf(json + n, sizeof(json) - n, "%s\"level\":\"%s\",\"rssi\":%d",
                   n > 1 ? "," : "",
                   lvl < AIR_LVL_COUNT ? NIVEL[lvl] : "unknown", net_rssi());
+
+    pmu_status_t b;
+    if (pmu_available() && pmu_read(&b) == ESP_OK && b.present) {
+        n += snprintf(json + n, sizeof(json) - n,
+                      ",\"bat\":%d,\"bat_mv\":%u,\"charging\":%s,\"usb\":%s",
+                      b.percent, b.millivolts,
+                      b.charging ? "true" : "false", b.vbus ? "true" : "false");
+    }
+    n += snprintf(json + n, sizeof(json) - n, "}");
 
     // RETENIDO a proposito: quien se suscriba despues (Home Assistant o
     // Homebridge al reiniciar) recibe el ultimo estado al instante en vez de

@@ -141,6 +141,12 @@ Al conectar, el firmware publica mensajes de descubrimiento retenidos en
 con 11 entidades**: las nueve del sensor, el nivel global de calidad del aire
 y la cobertura WiFi como diagnóstico.
 
+**Con batería conectada aparecen 4 más**, también como diagnóstico: carga en
+%, tensión de la celda en mV, y dos binarios para *cargando* y *alimentación
+USB*. Si no hay celda **no se publican**, para no dejar en Home Assistant
+cuatro entidades que no van a decir nada nunca. Se detecta al conectar con el
+broker, así que si añades la batería después hay que reiniciar el aparato.
+
 - Estado: `sen66-xxxxxx/state`, un JSON cada 10 s.
 - Disponibilidad: `sen66-xxxxxx/status` con *last will*, así que si el
   aparato se cae HA lo marca como no disponible en vez de dejar valores
