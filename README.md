@@ -351,15 +351,65 @@ puerta abierta.
 - **Los índices VOC y NOx necesitan tiempo.** Son índices adaptativos: el
   sensor aprende el ambiente habitual y lo sitúa en 100 (VOC) y 1 (NOx). Las
   primeras horas los valores no significan gran cosa.
-- **La temperatura leerá alto.** El sensor está dentro de una carcasa junto a
-  electrónica que calienta. Se compara con un termómetro de referencia y se
-  mete la diferencia en "Corrección de temperatura": el offset se programa
+- **La temperatura leerá alto**, porque el sensor está dentro de una carcasa
+  junto a electrónica que calienta. Se compara con un termómetro de referencia
+  y se mete la diferencia en "Corrección de temperatura": el offset se programa
   **dentro del SEN66**, así que corrige también la humedad relativa.
+
+  Pero antes de aplicar nada, léete [Sobre medir el
+  desvío](#sobre-medir-el-desvío): es fácil corregir de más.
 - **Altitud**: afecta a la medida de CO₂. Poner los metros del sitio.
 - **Autocalibración del CO₂ (ASC)**: activada por defecto. Asume que el
   aparato ve aire fresco (~400 ppm) de forma regular. En una habitación que
   nunca se ventila conviene desactivarla y hacer una recalibración forzada al
   aire libre.
+
+### Sobre medir el desvío
+
+Aquí van 22 horas de medidas reales contra un Qingping Air Monitor 2 y un
+termómetro independiente, los tres juntos en la misma mesa. Sirven de aviso,
+porque cada paso del camino invitaba a corregir algo que no había que corregir.
+
+**Dos aparatos dan la diferencia, nunca quién acierta.** Doce horas contra el
+Qingping daban +1,05 °C y −8,4 % de humedad, muy constantes, y la conclusión
+obvia era meter −1,1 °C. Un tercer termómetro entre los dos lo desmontó:
+marcaba 26,1 °C y 56 %, o sea el SEN66 a **+0,4 °C** y el Qingping a −0,4 °C.
+El descuadre de humedad era **del Qingping** (+8,9 %), no del SEN66. Alinear
+uno con otro solo habría propagado el error del que se toma como patrón.
+
+**Un día entero, no unas horas.** Esa diferencia de temperatura tan estable lo
+era porque solo había datos diurnos. Con el ciclo completo va de **+0,20 a
++1,30 °C**: de madrugada se estrecha porque el otro aparato se calienta y el
+SEN66 no. Varía tanto como valdría la corrección, así que un offset fijo
+acierta a una hora y falla a otra.
+
+**Comprobar a varias concentraciones.** De tarde el SEN66 marcaba 44 ppm menos
+de CO₂ que el Qingping y parecía un error claro. Con la noche entera se ve que
+no es un desplazamiento sino **pendiente**:
+
+| CO₂ (Qingping) | SEN66 | diferencia |
+|---|---|---|
+| 451 | 407 | −44 |
+| 545 | 517 | −28 |
+| 645 | 627 | −18 |
+| 731 | 752 | +22 |
+| 811 | 836 | +24 |
+
+`SEN66 = 1,20 × Qingping − 138`, y **se cruzan en 675 ppm**. Ninguno de los dos
+está "mal": tienen ganancias distintas y coinciden en el punto de cruce. Con
+datos de un solo tramo, cualquiera de los dos parece el equivocado.
+
+**No confundir un sensor bien calibrado con uno anclado.** El SEN66 pasó cinco
+horas de tarde clavado en 403 ppm, que es sospechosamente la línea base del
+aire exterior, y parecía que la autocalibración le había fijado el cero
+demasiado abajo. La curva nocturna lo aclaró: 403 → 500 → 642 → 720 → **831 al
+amanecer**, la subida de manual de un cuarto cerrado con gente durmiendo. La
+tarde estaba ventilada de verdad y el sensor la siguió.
+
+**Conclusión: en este aparato no se aplica ningún offset.** Los +0,4 °C contra
+la referencia caben dentro de la tolerancia del propio SEN66 (±0,5 °C), y la
+diferencia ni siquiera es constante. Corregir eso sería ajustar a ruido, con el
+agravante de que un offset se olvida y se queda ahí para siempre.
 
 ## Estructura
 

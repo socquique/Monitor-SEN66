@@ -120,17 +120,27 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 ## Hecho, por si se busca
 
-- **El offset de temperatura NO se aplica, y es una decisión medida**
-  (21-08-2026). Dos horas de registro contra el Qingping daban +1,05 °C y
-  −8,4 % de humedad, y estuvimos a punto de meter un offset de −1,1 °C. Una
-  foto con un **termómetro independiente** entre los dos lo desmontó: la
-  referencia marcaba 26,1 °C y 56 %, o sea SEN66 +0,4 °C y +1,5 %, contra
-  Qingping −0,4 °C y **+8,9 %**. El descuadre de humedad era del Qingping, no
-  del SEN66. Los tres caben en 0,8 °C, dentro de la tolerancia propia del
-  SEN66 (±0,5 °C): corregir eso es ajustar a ruido.
-- **Lección de método**: comparar dos aparatos da la diferencia, nunca quién
-  acierta. Sin un tercero independiente, "centrar" uno con otro solo propaga
-  el error del que se toma como patrón.
+- **No se aplica NINGÚN offset, ni de temperatura ni de CO₂, y es una decisión
+  medida** (22-08-2026): 22 h de registro contra un Qingping Air Monitor 2 más
+  un termómetro independiente, los tres en la misma mesa. El razonamiento
+  entero está en el README, en "Sobre medir el desvío", y los datos crudos en
+  la DietPi, `/root/comparacion-20260821.csv`. En corto:
+  - Contra la referencia el SEN66 está a **+0,4 °C**, dentro de su propia
+    tolerancia (±0,5 °C). El desvío de humedad que veíamos era **del Qingping**
+    (+8,9 %), no del SEN66.
+  - La diferencia de temperatura **no es constante**: va de +0,20 a +1,30 °C
+    según la hora. Un offset fijo acierta a una hora y falla a otra.
+  - En CO₂ la discrepancia es de **pendiente, no de cero**:
+    `SEN66 = 1,20 × Qingping − 138`, cruzándose en 675 ppm. Por debajo el SEN66
+    marca menos y por encima más.
+  - La ASC del CO₂ **está bien**: los 403 ppm de una tarde parecían un cero
+    anclado, pero la curva nocturna (403 → 831 al amanecer) demuestra que la
+    tarde estaba ventilada de verdad.
+- **Tres lecciones de método, todas pagadas en esta sesión**: comparar dos
+  aparatos da la diferencia y nunca quién acierta; hay que medir un ciclo de
+  24 h porque una diferencia "constante" suele serlo solo de día; y hay que
+  comprobar a varias concentraciones, porque un tramo suelto convierte una
+  diferencia de pendiente en un falso error de cero.
 
 - **Alarma de CO₂ y recalibración forzada** salieron al panel web en la 1.2.0.
   La recalibración no se ejecuta en el hilo del servidor: el comando exige la
