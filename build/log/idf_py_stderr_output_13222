@@ -1,1 +1,0 @@
-Command: /Users/quique/.espressif/python_env/idf5.5_py3.14_env/bin/python -m esptool --chip esp32s3 merge_bin -o /tmp/monitor-sen66-merged.bin -f raw @flash_args

@@ -1,6 +1,0 @@
-esp-idf/lvgl__lvgl/CMakeFiles/__idf_lvgl__lvgl.dir/src/libs/FT800-FT813/EVE_commands.c.obj: \
- /Users/quique/proyectos/Monitor\ SEN66/managed_components/lvgl__lvgl/src/libs/FT800-FT813/EVE_commands.c \
- /Users/quique/proyectos/Monitor\ SEN66/managed_components/lvgl__lvgl/src/libs/FT800-FT813/../../lv_conf_internal.h \
- /Users/quique/proyectos/Monitor\ SEN66/managed_components/lvgl__lvgl/src/libs/FT800-FT813/../../lv_conf_kconfig.h \
- /Users/quique/proyectos/Monitor\ SEN66/build/config/sdkconfig.h \
- /Users/quique/esp/esp-idf/components/esp_common/include/esp_attr.h

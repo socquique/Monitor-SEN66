@@ -1,0 +1,6 @@
+# Esta rama solo sirve el sitio web. Todo lo demas vive en main.
+build/
+managed_components/
+sim/
+sdkconfig
+sdkconfig.old
