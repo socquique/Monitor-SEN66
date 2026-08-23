@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "driver/i2c_master.h"
+#include "driver/i2s_std.h"
 #include "esp_err.h"
 
 typedef enum {
@@ -23,3 +24,8 @@ bool sound_available(void);
 void sound_play(sound_effect_t fx);
 
 void sound_set_volume(uint8_t percent); // 0..100
+
+// Canal de RECEPCION del mismo puerto I2S. Los microfonos comparten relojes
+// con el altavoz, asi que su canal se crea aqui y lo consume mic.c. NULL si
+// sound_init() no ha llegado a crearlo.
+i2s_chan_handle_t sound_i2s_rx(void);

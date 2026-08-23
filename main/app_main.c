@@ -32,6 +32,7 @@
 #include "history.h"
 #include "net.h"
 #include "pmu_axp2101.h"
+#include "mic.h"
 #include "sound.h"
 #include "i18n.h"
 #include "rtc_pcf85063.h"
@@ -264,6 +265,23 @@ static void recal_status(char *out, size_t len)
     xSemaphoreGive(s_lock);
 }
 
+// Parar y arrancar la medicion a mano. Sirve para medir cuanto ruido mete el
+// ventilador del sensor, que es lo que decide si un sonometro tiene sentido
+// dentro de esta carcasa. Va por el mismo camino que la recalibracion y por
+// la misma razon: pararlo desde el hilo del servidor se pisaria con la
+// lectura de cada segundo.
+//
+// OJO: parado no se mide NADA. Es un diagnostico, no un modo de ahorro; esa
+// decision ya se tomo y esta razonada en el comentario de app_main.
+static volatile int s_fan_request;  // 0 = nada, 1 = arrancar, -1 = parar
+
+static bool fan_request(bool on)
+{
+    if (!s_sensor_ok) return false;
+    s_fan_request = on ? 1 : -1;
+    return true;
+}
+
 // Solo desde sensor_task.
 static void recal_run(uint16_t ppm)
 {
@@ -356,6 +374,17 @@ static void sensor_task(void *arg)
         if (s_recal_ppm != 0) {
             recal_run(s_recal_ppm);
             s_recal_ppm = 0;
+        }
+
+        if (s_fan_request != 0) {
+            const bool encender = s_fan_request > 0;
+            s_fan_request = 0;
+            const esp_err_t e = encender ? sen66_start() : sen66_stop();
+            ESP_LOGW(TAG, "medicion %s a mano: %s", encender ? "arrancada" : "parada",
+                     esp_err_to_name(e));
+            // Parada la medicion no llegan lecturas, y a los SENSOR_DEAD_S la
+            // deteccion de sensor muerto intentaria recuperarlo. Para un
+            // diagnostico corto da igual; si se alarga, se recupera solo.
         }
 
         if (s_sensor_ok) {
@@ -504,6 +533,9 @@ void app_main(void)
     pmu_set_charge_current(500);
     if (sound_init(display_i2c_bus()) == ESP_OK) {
         sound_set_volume(settings_get()->alarm_volume);
+        // Los microfonos van DESPUES: usan el canal de recepcion que crea
+        // sound_init(), en el mismo puerto I2S.
+        mic_init(display_i2c_bus());
     }
     clock_from_rtc();
     net_set_time_sync_cb(clock_to_rtc);
@@ -535,6 +567,7 @@ void app_main(void)
     ESP_ERROR_CHECK(net_start());
     ESP_ERROR_CHECK(webcfg_start(get_sample_for_web));
     webcfg_set_co2_recal(recal_request, recal_status);
+    webcfg_set_fan(fan_request);
     ha_mqtt_start();
 
     if (pmu_available()) {

@@ -6,6 +6,7 @@ idf_component_register(
         "ha_mqtt.c"
         "history.c"
         "i18n.c"
+        "mic.c"
         "fonts/fonts.c"
         "fonts/font_de_14.c"
         "fonts/font_de_16.c"

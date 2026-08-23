@@ -20,6 +20,7 @@ static const char *TAG = "sound";
 #define MCLK_MULT   256
 
 static i2s_chan_handle_t s_tx;
+static i2s_chan_handle_t s_rx;
 static i2c_master_dev_handle_t s_codec;
 static QueueHandle_t s_queue;
 static bool s_ready;
@@ -125,10 +126,12 @@ static void sound_task(void *arg)
 
         // El amplificador solo se enciende mientras suena: dejarlo activo
         // mete un siseo constante por el altavoz.
+        // El canal de transmision NO se apaga entre avisos: en full-duplex es
+        // quien genera MCLK, BCLK y WS, y sin ellos el ES7210 de los
+        // microfonos no entrega nada. Con auto_clear manda silencio, que no
+        // se oye porque el amplificador sigue apagado.
         gpio_set_level(BOARD_I2S_PIN_PA_EN, 1);
-        i2s_channel_enable(s_tx);
         for (const tone_t *t = seq; t->hz || t->gap_ms; t++) play_tone(t);
-        i2s_channel_disable(s_tx);
         gpio_set_level(BOARD_I2S_PIN_PA_EN, 0);
     }
 }
@@ -144,7 +147,10 @@ esp_err_t sound_init(i2c_master_bus_handle_t bus)
 
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
     chan_cfg.auto_clear = true;
-    ESP_RETURN_ON_ERROR(i2s_new_channel(&chan_cfg, &s_tx, NULL), TAG, "i2s chan");
+    // Se crean los DOS canales del mismo puerto: los microfonos (ES7210)
+    // comparten MCLK, BCLK y WS con el altavoz (ES8311), asi que la entrada
+    // no puede ir en otro puerto. Quien la usa es mic.c.
+    ESP_RETURN_ON_ERROR(i2s_new_channel(&chan_cfg, &s_tx, &s_rx), TAG, "i2s chan");
 
     i2s_std_config_t std_cfg = {
         .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(SAMPLE_RATE),
@@ -161,6 +167,16 @@ esp_err_t sound_init(i2c_master_bus_handle_t bus)
     std_cfg.clk_cfg.mclk_multiple = MCLK_MULT;
     ESP_RETURN_ON_ERROR(i2s_channel_init_std_mode(s_tx, &std_cfg), TAG, "i2s std");
 
+    // La recepcion va en estereo aunque solo interese un microfono: el chip
+    // saca dos ranuras y la segunda no es un micro, es la referencia de
+    // reproduccion. Descartarla es cosa de mic.c.
+    i2s_std_config_t rx_cfg = std_cfg;
+    rx_cfg.slot_cfg = (i2s_std_slot_config_t)
+        I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO);
+    rx_cfg.gpio_cfg.dout = I2S_GPIO_UNUSED;
+    rx_cfg.gpio_cfg.din  = BOARD_I2S_PIN_DIN;
+    ESP_RETURN_ON_ERROR(i2s_channel_init_std_mode(s_rx, &rx_cfg), TAG, "i2s std rx");
+
     const i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = ES8311_ADDR,
@@ -176,6 +192,8 @@ esp_err_t sound_init(i2c_master_bus_handle_t bus)
     ESP_RETURN_ON_ERROR(codec_init(), TAG, "codec");
     sound_set_volume(s_volume);
 
+    ESP_RETURN_ON_ERROR(i2s_channel_enable(s_tx), TAG, "i2s tx enable");
+
     s_queue = xQueueCreate(4, sizeof(sound_effect_t));
     ESP_RETURN_ON_FALSE(s_queue, ESP_ERR_NO_MEM, TAG, "cola");
     // En el nucleo 0 con la red: el 1 lleva la pantalla y el sensor.
@@ -187,6 +205,8 @@ esp_err_t sound_init(i2c_master_bus_handle_t bus)
 }
 
 bool sound_available(void) { return s_ready; }
+
+i2s_chan_handle_t sound_i2s_rx(void) { return s_rx; }
 
 void sound_play(sound_effect_t fx)
 {

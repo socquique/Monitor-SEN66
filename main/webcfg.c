@@ -1,6 +1,7 @@
 #include "webcfg.h"
 #include "display.h"
 #include "ha_mqtt.h"
+#include "mic.h"
 #include "net.h"
 #include "pmu_axp2101.h"
 #include "sound.h"
@@ -30,6 +31,9 @@ static httpd_handle_t s_server;
 static webcfg_sample_fn s_get_sample;
 static webcfg_recal_fn s_recal_request;
 static webcfg_recal_status_fn s_recal_status;
+static webcfg_fan_fn s_fan;
+
+void webcfg_set_fan(webcfg_fan_fn fn) { s_fan = fn; }
 
 void webcfg_set_co2_recal(webcfg_recal_fn request, webcfg_recal_status_fn status)
 {
@@ -217,6 +221,15 @@ static esp_err_t h_state(httpd_req_t *req)
     }
     n += snprintf(json + n, sizeof(json) - n, "\"level\":\"%s\"",
                   s.valid ? air_level_text(air_overall(&s)) : "");
+
+    {
+        const float lvl = mic_level_dbfs(), pk = mic_peak_dbfs();
+        n += snprintf(json + n, sizeof(json) - n, ",\"mic\":\"%s\"", mic_status());
+        if (!isnan(lvl)) {
+            n += snprintf(json + n, sizeof(json) - n,
+                          ",\"noise_dbfs\":%.1f,\"noise_peak_dbfs\":%.1f", lvl, pk);
+        }
+    }
 
     if (s_recal_status) {
         char recal[96];
@@ -456,6 +469,24 @@ static esp_err_t h_co2recal(httpd_req_t *req)
     return httpd_resp_sendstr(req, "recalibrando, tarda unos segundos...");
 }
 
+// Diagnostico: parar o arrancar la medicion del sensor. Parado el ventilador
+// se detiene, que es lo que permite medir cuanto ruido mete. No se mide nada
+// mientras tanto.
+static esp_err_t h_fan(httpd_req_t *req)
+{
+    char q[32], v[8];
+    if (httpd_req_get_url_query_str(req, q, sizeof(q)) != ESP_OK ||
+        httpd_query_key_value(q, "on", v, sizeof(v)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "falta on=0|1");
+        return ESP_FAIL;
+    }
+    if (!s_fan || !s_fan(v[0] == '1')) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "el sensor no esta disponible");
+        return ESP_FAIL;
+    }
+    return httpd_resp_sendstr(req, v[0] == '1' ? "midiendo" : "parado (no se mide nada)");
+}
+
 static esp_err_t h_reboot(httpd_req_t *req)
 {
     httpd_resp_sendstr(req, "ok");
@@ -527,6 +558,7 @@ esp_err_t webcfg_start(webcfg_sample_fn get_sample)
         {.uri = "/api/fanclean",  .method = HTTP_POST, .handler = h_fanclean},
         {.uri = "/api/beep",      .method = HTTP_POST, .handler = h_beep},
         {.uri = "/api/co2recal",  .method = HTTP_POST, .handler = h_co2recal},
+        {.uri = "/api/fan",       .method = HTTP_POST, .handler = h_fan},
         {.uri = "/api/backup",    .method = HTTP_GET,  .handler = h_backup},
         {.uri = "/api/reboot",    .method = HTTP_POST, .handler = h_reboot},
         {.uri = "/api/ota",       .method = HTTP_POST, .handler = h_ota},

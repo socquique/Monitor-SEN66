@@ -26,3 +26,8 @@ typedef bool (*webcfg_recal_fn)(uint16_t target_ppm);
 typedef void (*webcfg_recal_status_fn)(char *out, size_t len);
 
 void webcfg_set_co2_recal(webcfg_recal_fn request, webcfg_recal_status_fn status);
+
+// Parar y arrancar la medicion a mano, para diagnostico. Misma via que la
+// recalibracion: el panel solo lo pide. Parada NO se mide nada.
+typedef bool (*webcfg_fan_fn)(bool on);
+void webcfg_set_fan(webcfg_fan_fn fn);
