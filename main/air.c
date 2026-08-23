@@ -31,6 +31,8 @@ static const band_t k_bands[AIR_METRIC_COUNT] = {
     [AIR_VOC]  = {.b = {150, 250, 400, 450}},
     [AIR_NOX]  = {.b = {20, 150, 300, 400}},
     [AIR_CO2]  = {.b = {800, 1000, 1400, 2000}},
+    // Ruido en dB: biblioteca, conversacion, calle, molesto.
+    [AIR_NOISE] = {.b = {45, 55, 65, 75}},
     [AIR_HUM]  = {.comfort = true, .ideal_lo = 40, .ideal_hi = 60, .step = 10},
     [AIR_TEMP] = {.comfort = true, .ideal_lo = 19, .ideal_hi = 25, .step = 3},
 };
@@ -58,6 +60,7 @@ const char *air_metric_key(air_metric_t m)
     case AIR_VOC:  return "voc";
     case AIR_NOX:  return "nox";
     case AIR_CO2:  return "co2";
+    case AIR_NOISE: return "noise";
     default:       return "?";
     }
 }
@@ -74,6 +77,7 @@ const char *air_metric_label(air_metric_t m)
     case AIR_VOC:  return "VOC";
     case AIR_NOX:  return "NOx";
     case AIR_CO2:  return "CO2";
+    case AIR_NOISE: return "Ruido";
     default:       return "?";
     }
 }
@@ -86,6 +90,7 @@ const char *air_metric_unit_ui(air_metric_t m)
     case AIR_TEMP: return "C";
     case AIR_VOC: case AIR_NOX: return "idx";
     case AIR_CO2:  return "ppm";
+    case AIR_NOISE: return "dB";
     default:       return "";
     }
 }
@@ -98,6 +103,7 @@ const char *air_metric_unit_ha(air_metric_t m)
     case AIR_TEMP: return "°C";
     case AIR_VOC: case AIR_NOX: return "";
     case AIR_CO2:  return "ppm";
+    case AIR_NOISE: return "dB";
     default:       return "";
     }
 }
@@ -105,7 +111,7 @@ const char *air_metric_unit_ha(air_metric_t m)
 int air_metric_decimals(air_metric_t m)
 {
     switch (m) {
-    case AIR_CO2: case AIR_VOC: case AIR_NOX: return 0;
+    case AIR_CO2: case AIR_VOC: case AIR_NOX: case AIR_NOISE: return 0;
     default: return 1;
     }
 }
@@ -184,6 +190,7 @@ float air_gauge_min(air_metric_t m)
 {
     switch (m) {
     case AIR_CO2:  return 400;   // el aire exterior ya esta ahi
+    case AIR_NOISE: return 30;  // por debajo no llega: el ventilador pone el suelo
     case AIR_TEMP: return 0;
     default:       return 0;
     }
@@ -198,6 +205,7 @@ float air_gauge_max(air_metric_t m)
     case AIR_TEMP: return 40;
     case AIR_VOC: case AIR_NOX: return 500;
     case AIR_CO2:  return 2400;
+    case AIR_NOISE: return 90;
     default:       return 100;
     }
 }

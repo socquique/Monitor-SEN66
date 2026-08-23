@@ -16,6 +16,7 @@ typedef enum {
     AIR_VOC,       // indice Sensirion 1..500 (100 = ambiente tipico)
     AIR_NOX,       // indice Sensirion 1..500 (1 = ambiente tipico)
     AIR_CO2,       // ppm
+    AIR_NOISE,     // dB(A) aproximados; NO entra en el semaforo del aire
     AIR_METRIC_COUNT,
 } air_metric_t;
 

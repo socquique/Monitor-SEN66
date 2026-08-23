@@ -58,6 +58,8 @@ static void synth(air_sample_t *s, long t, int scenario)
     s->v[AIR_HUM] = 46.0f + 9.0f * sinf(t / 2400.0f) + 6.0f * spike;
     s->v[AIR_TEMP] = 22.2f + 1.6f * sinf(t / 3600.0f) + 0.8f * spike;
     s->v[AIR_VOC] = voc;
+    // Ruido: suelo de casa mas el trajin de la cocina, con variacion rapida.
+    s->v[AIR_NOISE] = 38.0f + 16.0f * spike * bias + 4.0f * sinf(t / 11.0f);
     s->v[AIR_NOX] = nox;
     s->v[AIR_CO2] = co2;
     s->valid = true;

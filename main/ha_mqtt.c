@@ -30,6 +30,7 @@ static const char *device_class(air_metric_t m)
     case AIR_HUM:  return "humidity";
     case AIR_TEMP: return "temperature";
     case AIR_CO2:  return "carbon_dioxide";
+    case AIR_NOISE: return "sound_pressure";
     default:       return "";
     }
 }

@@ -51,6 +51,7 @@ static lv_obj_t *s_status_bat;
 static lv_obj_t *s_idle_panel;
 static lv_obj_t *s_idle_val[AIR_METRIC_COUNT];
 static lv_obj_t *s_idle_level;
+static lv_obj_t *s_idle_noise_name;
 static bool s_idle_shown;
 static lv_obj_t *s_dots[UI_PAGE_COUNT];
 
@@ -370,6 +371,14 @@ static void build_idle(lv_obj_t *scr)
     s_idle_level = make_label(s_idle_panel, &ui_font_28, 0xffffff);
     lv_obj_align(s_idle_level, LV_ALIGN_CENTER, 0, -92);
 
+    // El ruido va aparte, bajo el semaforo, y NO en la rejilla: no es calidad
+    // del aire y no cuenta para el nivel global. Ademas mete una decima fila
+    // que chocaria con el indicador de bateria (y = +148).
+    s_idle_noise_name = make_label(s_idle_panel, &ui_font_14, 0x64748b);
+    lv_obj_align(s_idle_noise_name, LV_ALIGN_CENTER, -30, -64);
+    s_idle_val[AIR_NOISE] = make_label(s_idle_panel, &ui_font_16, 0xffffff);
+    lv_obj_align(s_idle_val[AIR_NOISE], LV_ALIGN_CENTER, 26, -64);
+
     static const air_metric_t orden[9] = {
         AIR_CO2,  AIR_TEMP, AIR_HUM,
         AIR_PM1,  AIR_PM25, AIR_PM4,
@@ -520,6 +529,7 @@ void ui_update(const air_sample_t *s)
     if (s_idle_panel) {
         const air_level_t glob = air_overall(s);
         lv_label_set_text(s_idle_level, i18n_level(glob));
+        if (s_idle_noise_name) lv_label_set_text(s_idle_noise_name, i18n_metric(AIR_NOISE));
         lv_obj_set_style_text_color(s_idle_level, col(air_level_color(glob)), 0);
         for (int m = 0; m < AIR_METRIC_COUNT; m++) {
             if (!s_idle_val[m]) continue;

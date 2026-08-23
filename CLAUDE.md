@@ -118,6 +118,21 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
 
 ## Hecho, por si se busca
 
+- **Sonometro (1.4.0)**. Los micros van a un **ES7210 en 0x40**, no al ES8311.
+  Driver a mano (el oficial usa la API vieja de I2C). Tres trampas, una OTA
+  cada una: sondear con un registro de ID inventado da NACK (usar
+  `i2c_master_probe`); el canal I2S va habilitado ANTES de configurar el
+  codec; y sobre todo **en full-duplex los relojes los genera el canal de
+  TRANSMISION**, que `sound.c` solo encendia mientras sonaba un aviso — sin
+  MCLK el ES7210 no entrega nada. Ahora queda habilitado siempre y el
+  amplificador se sigue apagando entre avisos.
+- **El ruido del ventilador del SEN66 NO es medible** por encima del ruido de
+  la sala. Primera medida: +5,2 dB. Repetida en silencio: −5,6 dB, o sea
+  imposible. Lo que vale para un suelo es el minimo, y ahi sale −69,3 dBFS con
+  ventilador contra −67,0 sin el. **Corregido: la primera cifra era ruido de
+  la sala, no del ventilador.** Enesima version de la misma leccion: una
+  diferencia entre dos ventanas cortas no es una medida.
+
 - **El flujo de aire de la carcasa AirRing está verificado** (22-08-2026), no
   supuesto. El SEN66 tiene dos entradas (hueco cuadrado y membrana) y una
   salida (el ventilador), y Sensirion pide separarlas entre sí y aislarlas del

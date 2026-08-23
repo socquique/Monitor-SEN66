@@ -82,6 +82,11 @@ static const char k_page[] =
 "<div><label>Paginas visibles</label><input name=pages_mask type=number min=1 max=31></div></div>"
 "<div class=grid><div><label>Correccion de temperatura (C)</label><input name=temp_offset type=number step=0.1></div>"
 "<div><label>Altitud (m)</label><input name=altitude_m type=number min=0 max=3000></div></div>"
+"<div class=grid><div><label>Calibracion del ruido (dB)</label>"
+"<input name=noise_offset_db type=number min=0 max=200></div>"
+"<div><label></label><div style='color:#64748b;font-size:12px;padding-top:8px'>"
+"Se suma al nivel del microfono. Ajustar contra un sonometro de referencia."
+"</div></div></div>"
 "<label>Autocalibracion del CO2</label><select name=co2_asc>"
 "<option value=1>activada</option><option value=0>desactivada</option></select>"
 "<label>Aviso sonoro de CO2</label><select name=alarm_enabled>"
@@ -259,13 +264,13 @@ static esp_err_t h_settings_get(httpd_req_t *req)
         "\"page_dwell_s\":%u,\"chart_span_min\":%u,\"pages_mask\":%u,"
         "\"temp_offset\":%.1f,\"altitude_m\":%u,\"co2_asc\":%d,"
         "\"alarm_enabled\":%d,\"alarm_co2_ppm\":%u,\"alarm_clear_ppm\":%u,"
-        "\"alarm_volume\":%u}",
+        "\"alarm_volume\":%u,\"noise_offset_db\":%d}",
         c->wifi_ssid, c->mqtt_uri, c->mqtt_user, c->mqtt_prefix, c->device_name, c->lang,
         c->tz, c->ntp, c->brightness, c->night_brightness, c->screen_timeout_s,
         c->page_dwell_s, c->chart_span_min, c->pages_mask,
         c->temp_offset_dc / 10.0f, c->altitude_m, c->co2_asc ? 1 : 0,
         c->alarm_enabled ? 1 : 0, c->alarm_co2_ppm, c->alarm_clear_ppm,
-        c->alarm_volume);
+        c->alarm_volume, c->noise_offset_db);
 
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json, n);
@@ -350,6 +355,7 @@ static esp_err_t h_settings_post(httpd_req_t *req)
     if (get_num(root, "alarm_co2_ppm", &d))    c->alarm_co2_ppm = (uint16_t)(d < 400 ? 400 : (d > 5000 ? 5000 : d));
     if (get_num(root, "alarm_clear_ppm", &d))  c->alarm_clear_ppm = (uint16_t)(d < 400 ? 400 : (d > 5000 ? 5000 : d));
     if (get_num(root, "alarm_volume", &d))     c->alarm_volume = (uint8_t)(d < 0 ? 0 : (d > 100 ? 100 : d));
+    if (get_num(root, "noise_offset_db", &d)) c->noise_offset_db = (int16_t)(d < 0 ? 0 : (d > 200 ? 200 : d));
     cJSON_Delete(root);
 
     // La histeresis solo existe si el umbral de callar queda POR DEBAJO del de

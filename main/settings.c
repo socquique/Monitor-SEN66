@@ -38,6 +38,9 @@ void settings_defaults(settings_t *s)
     s->alarm_clear_ppm = 1000; // histeresis: no pita cada vez que roza el umbral
     s->alarm_volume = 60;
     strcpy(s->lang, "es");
+    // Provisional: sacado de una sola comparacion contra un Qingping, que no
+    // es un patron. Sirve para que el numero sea plausible, no exacto.
+    s->noise_offset_db = 120;
 }
 
 esp_err_t settings_load(void)

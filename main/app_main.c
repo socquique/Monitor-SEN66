@@ -392,6 +392,16 @@ static void sensor_task(void *arg)
             air_sample_clear(&fresh);
             const esp_err_t err = sen66_read(&fresh);
 
+            // El ruido no viene del SEN66: lo miden los microfonos de la
+            // placa, en su propia tarea. Se cuela en la misma muestra para
+            // que herede historial, graficas y publicacion sin caso aparte.
+            if (mic_available()) {
+                const float dbfs = mic_level_dbfs();
+                if (!isnan(dbfs)) {
+                    fresh.v[AIR_NOISE] = dbfs + settings_get()->noise_offset_db;
+                }
+            }
+
             if (err == ESP_OK) {
                 s_last_read_us = esp_timer_get_time();
                 s_had_reading = true;

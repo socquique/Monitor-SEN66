@@ -48,6 +48,12 @@ typedef struct {
     uint8_t alarm_volume;    // 0..100
     uint32_t last_fan_clean;  // epoch de la ultima limpieza de ventilador
     char lang[4];             // "es", "en" o "de"
+
+    // Calibracion del sonometro: dB que se SUMAN al nivel del microfono
+    // (que sale en dBFS, negativo) para dar dB SPL. Depende de la
+    // sensibilidad del micro y de la ganancia del codec, asi que se ajusta
+    // contra una referencia; no se deduce.
+    int16_t noise_offset_db;
 } settings_t;
 
 // Carga de NVS; si no hay nada guardado deja los valores por defecto.

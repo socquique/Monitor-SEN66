@@ -49,6 +49,7 @@ static const char *const METRICAS[AIR_METRIC_COUNT][LANG_COUNT] = {
     [AIR_VOC]  = {"VOC", "VOC", "VOC"},
     [AIR_NOX]  = {"NOx", "NOx", "NOx"},
     [AIR_CO2]  = {"CO2", "CO2", "CO2"},
+    [AIR_NOISE] = {"Ruido", "Noise", "Lärm"},
 };
 
 void i18n_set_lang(lang_t lang)

@@ -370,6 +370,32 @@ puerta abierta.
   nunca se ventila conviene desactivarla y hacer una recalibración forzada al
   aire libre.
 
+### El sonometro
+
+La placa lleva **dos microfonos**, que no cuelgan del ES8311 (ese es solo
+salida) sino de un **ES7210** aparte, en `0x40`. El ruido entra como una
+metrica mas, asi que hereda historial, graficas, panel web y descubrimiento
+de Home Assistant sin nada especifico; lo unico propio es el driver y el paso
+a decibelios. **No cuenta para el semaforo global**: no es calidad del aire.
+
+**El nivel hay que calibrarlo.** Del microfono sale un nivel a fondo de escala
+(dBFS, siempre negativo); pasarlo a dB SPL exige la sensibilidad del micro y
+la ganancia del codec, y eso se mide, no se deduce. El panel tiene el campo
+"Calibracion del ruido": se pone el aparato al lado de un sonometro de
+referencia y se ajusta hasta que coincidan. El valor por defecto, 102 dB, sale
+de una sola comparacion contra otro medidor domestico, asi que da un numero
+plausible y poco mas.
+
+**Sobre el ventilador del SEN66**, que esta dentro de la misma carcasa: la
+sospecha razonable era que fijara el suelo de ruido. Se midio parando la
+medicion (`/api/fan`) y comparando. Dos intentos, y en el segundo salio que
+con el ventilador en marcha se media MENOS que parado, que es imposible: la
+diferencia la manda la variacion de la sala, no el ventilador. Mirando lo que
+de verdad importa para un suelo, el minimo, sale −69,3 dBFS con el ventilador
+girando frente a −67,0 con el parado. **Conclusion: el ventilador queda por
+debajo de lo que este metodo puede medir.** No es que aporte poco, es que no
+se distingue.
+
 ### La carcasa y el aire
 
 El SEN66 tiene **dos entradas y una salida**, las tres en la misma cara: el
