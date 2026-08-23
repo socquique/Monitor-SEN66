@@ -10,7 +10,7 @@
 
 #include "esp_err.h"
 
-#define SETTINGS_PAGES 5 // resumen, CO2, particulas, gases, clima
+#define SETTINGS_PAGES 6 // resumen, CO2, particulas, gases, clima, ruido
 
 typedef struct {
     char wifi_ssid[33];

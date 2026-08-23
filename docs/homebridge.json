@@ -75,6 +75,24 @@
           "apply": "const d=JSON.parse(message); return d.co2==null?state:d.co2;"
         }
       }
+    },
+    {
+      "accessory": "mqttthing",
+      "type": "occupancySensor",
+      "name": "Ruido alto",
+      "url": "mqtt://IP_DEL_BROKER:1883",
+      "username": "USUARIO_MQTT",
+      "password": "CONTRASENA_MQTT",
+      "topics": {
+        "getOnline": {
+          "topic": "sen66-XXXXXX/status",
+          "apply": "return String(message).trim()==='online';"
+        },
+        "getOccupancyDetected": {
+          "topic": "sen66-XXXXXX/state",
+          "apply": "const n=JSON.parse(message).noise; if(n==null) return state; return n>65;"
+        }
+      }
     }
   ]
 }

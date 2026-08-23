@@ -15,6 +15,7 @@ typedef enum { LANG_ES = 0, LANG_EN, LANG_DE, LANG_COUNT } lang_t;
 typedef enum {
     STR_PAGE_GASES,        // "Gases"
     STR_PAGE_CLIMATE,      // "Clima"
+    STR_PAGE_NOISE,        // "Ruido"
     STR_ALL_OK,            // "todo en orden"
     STR_DRIVEN_BY,         // "manda el %s"  (lleva un %s)
     STR_WAITING,           // "esperando datos"

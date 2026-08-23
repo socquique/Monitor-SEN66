@@ -12,6 +12,7 @@ static lang_t s_lang = LANG_ES;
 static const char *const TBL[STR_COUNT][LANG_COUNT] = {
     [STR_PAGE_GASES]     = {"Gases", "Gases", "Gase"},
     [STR_PAGE_CLIMATE]   = {"Clima", "Climate", "Klima"},
+    [STR_PAGE_NOISE]     = {"Ruido", "Noise", "Lärm"},
     [STR_ALL_OK]         = {"todo en orden", "all clear", "alles in Ordnung"},
     [STR_DRIVEN_BY]      = {"manda el %s", "driven by %s", "bestimmt durch %s"},
     [STR_WAITING]        = {"esperando datos", "waiting for data", "warte auf Daten"},

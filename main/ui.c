@@ -24,7 +24,8 @@
 // De aqui salen todas las coordenadas de las paginas.
 #define RING_INNER_R ((RING_D) / 2 - 22)
 
-enum { PAGE_SUMMARY = 0, PAGE_CO2, PAGE_PM, PAGE_GAS, PAGE_CLIMATE };
+// El ruido va AL FINAL para no mover los bits de pages_mask ya guardados.
+enum { PAGE_SUMMARY = 0, PAGE_CO2, PAGE_PM, PAGE_GAS, PAGE_CLIMATE, PAGE_NOISE };
 
 // Indicador circular reutilizable: arco de 270 grados + valor + unidad.
 typedef struct {
@@ -61,12 +62,14 @@ static int s_col_page[UI_PAGE_COUNT];
 static int s_cols;
 static int s_cur_col;
 
-static gauge_t s_g_summary, s_g_co2, s_g_pm, s_g_voc, s_g_nox;
+static gauge_t s_g_summary, s_g_co2, s_g_pm, s_g_voc, s_g_nox, s_g_noise;
 static lv_obj_t *s_sum_center, *s_sum_sub;
 static lv_obj_t *s_sum_name[4], *s_sum_val[4];
 static lv_obj_t *s_pm_level, *s_pm_name[3], *s_pm_val[3];
 static lv_obj_t *s_co2_level, *s_co2_chart;
 static lv_chart_series_t *s_co2_ser;
+static lv_obj_t *s_noise_level, *s_noise_chart;
+static lv_chart_series_t *s_noise_ser;
 static lv_obj_t *s_cl_temp, *s_cl_hum, *s_cl_chart;
 static lv_chart_series_t *s_cl_ser, *s_cl_ser_hum;
 
@@ -400,6 +403,21 @@ static void build_idle(lv_obj_t *scr)
     }
 }
 
+// Misma receta que la pagina de CO2: grafica a sangre por debajo, anillo
+// encima. En ambar, que es el color que ya usan los avisos.
+static void build_noise(lv_obj_t *tile)
+{
+    chart_create(&s_noise_chart, &s_noise_ser, tile, 430, 90, 0xfacc15);
+    lv_obj_align(s_noise_chart, LV_ALIGN_CENTER, 0, 100);
+
+    gauge_create(&s_g_noise, tile, RING_D, 22, &ui_font_48, &ui_font_16);
+    lv_obj_align(s_g_noise.value, LV_ALIGN_CENTER, 0, -44);
+    lv_obj_align(s_g_noise.caption, LV_ALIGN_CENTER, 0, -96);
+
+    s_noise_level = make_label(tile, &ui_font_22, 0xffffff);
+    lv_obj_align(s_noise_level, LV_ALIGN_CENTER, 0, 26);
+}
+
 static void build_chrome(lv_obj_t *scr)
 {
     // Hora y estado de red DENTRO del anillo, no encima: es lo que permite
@@ -500,6 +518,7 @@ void ui_init(air_history_t *hist, const ui_config_t *cfg,
         case PAGE_PM:      build_pm(tile);      break;
         case PAGE_GAS:     build_gas(tile);     break;
         case PAGE_CLIMATE: build_climate(tile); break;
+        case PAGE_NOISE:   build_noise(tile);   break;
         default: break;
         }
         s_page_col[p] = s_cols;
@@ -586,6 +605,16 @@ void ui_update(const air_sample_t *s)
             lv_label_set_text(s_co2_level, i18n_level(lvl));
             lv_obj_set_style_text_color(s_co2_level, col(air_level_color(lvl)), 0);
             chart_refresh(s_co2_chart, s_co2_ser, AIR_CO2);
+            break;
+        }
+        case PAGE_NOISE: {
+            gauge_update(&s_g_noise, AIR_NOISE, s->v[AIR_NOISE]);
+            lv_obj_align(s_g_noise.value, LV_ALIGN_CENTER, 0, -44);
+            lv_obj_align_to(s_g_noise.unit, s_g_noise.value, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+            const air_level_t lvl = air_level(AIR_NOISE, s->v[AIR_NOISE]);
+            lv_label_set_text(s_noise_level, i18n_level(lvl));
+            lv_obj_set_style_text_color(s_noise_level, col(air_level_color(lvl)), 0);
+            chart_refresh(s_noise_chart, s_noise_ser, AIR_NOISE);
             break;
         }
         case PAGE_PM: {

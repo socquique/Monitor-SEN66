@@ -141,6 +141,10 @@ Al conectar, el firmware publica mensajes de descubrimiento retenidos en
 con 11 entidades**: las nueve del sensor, el nivel global de calidad del aire
 y la cobertura WiFi como diagnóstico.
 
+El **ruido** aparece como una entidad más, con clase `sound_pressure` y en dB.
+En HomeKit no: allí no existe el concepto de nivel sonoro, así que va como un
+binario de umbral (ver [docs/HOMEBRIDGE.md](docs/HOMEBRIDGE.md)).
+
 **Con batería conectada aparecen 4 más**, también como diagnóstico: carga en
 %, tensión de la celda en mV, y dos binarios para *cargando* y *alimentación
 USB*. Si no hay celda **no se publican**, para no dejar en Home Assistant
@@ -242,7 +246,7 @@ de la pantalla, rompería las automatizaciones de Home Assistant.
 
 ## La pantalla
 
-Cinco páginas, **se pasan arrastrando el dedo y no rotan solas**. Al no tocar
+Seis páginas, **se pasan arrastrando el dedo y no rotan solas**. Al no tocar
 nada durante `screen_timeout_s` la pantalla se atenúa y muestra una **vista de
 reposo con las nueve magnitudes** a la vez; al tocar vuelve exactamente a la
 página donde estabas.
@@ -254,6 +258,7 @@ página donde estabas.
 | Partículas | PM2.5 en grande con anillo; PM1.0 / PM4.0 / PM10 debajo |
 | Gases | Índices VOC y NOx en dos anillos |
 | Clima | Temperatura y humedad, y ambas curvas superpuestas con escala propia |
+| Ruido | Nivel en dB con anillo 30–90 y gráfica; ver la nota de calibración |
 
 En AMOLED el negro es píxel apagado, así que el fondo negro no consume y el
 atenuado por inactividad ahorra de verdad.

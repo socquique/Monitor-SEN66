@@ -45,6 +45,7 @@ Las funciones `apply` estan probadas contra el JSON real del aparato.
 | Temperatura, humedad | Servicios dentro del mismo accesorio |
 | **VOC y NOx** | **No aparecen** |
 | Bateria | Nivel, estado de carga y aviso de bateria baja, si hay celda |
+| **Ruido** | **No como numero**: HomeKit no tiene sensor de sonido. Va como binario "Ruido alto" |
 
 VOC y NOx se quedan fuera a proposito: HomeKit espera densidades en ug/m3 y
 el SEN66 da *indices* adimensionales (1-500). Publicarlos como si fueran una
@@ -63,6 +64,21 @@ anade al accesorio de calidad del aire:
 ```
 
 y `"history": true`. Sabiendo que ese numero es un indice disfrazado de ug/m3.
+
+## El ruido
+
+HomeKit **no tiene ningun servicio de nivel sonoro**, ni mqttthing lo inventa:
+sus tipos de sensor son aire, CO2, CO, contacto, humedad, fuga, luz,
+movimiento, ocupacion, humo, temperatura y presion. Punto.
+
+Asi que el numero no cabe. Lo que si cabe, y es util, es un **umbral**: un
+sensor de ocupacion llamado "Ruido alto" que se activa por encima de 65 dB, y
+con el ya se pueden hacer automatizaciones ("si hay ruido y no hay nadie en
+casa, avisame"). El umbral se cambia en el `apply` del propio accesorio.
+
+Se podria colar el nivel como sensor de luz, que es el apaño que circula por
+ahi, y la app Casa enseñaria "34 lx". No se hace por lo mismo que VOC y NOx se
+quedan fuera: inventarle una unidad a un dato es peor que no darlo.
 
 ## La bateria
 

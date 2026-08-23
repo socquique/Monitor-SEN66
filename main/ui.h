@@ -12,7 +12,7 @@
 #include "air.h"
 #include "history.h"
 
-#define UI_PAGE_COUNT 5
+#define UI_PAGE_COUNT 6
 
 typedef struct {
     uint16_t page_dwell_s;     // 0 = sin rotacion automatica

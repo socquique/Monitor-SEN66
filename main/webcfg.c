@@ -79,7 +79,7 @@ static const char k_page[] =
 "<div class=grid><div><label>Atenuar tras (s, 0=nunca)</label><input name=screen_timeout_s type=number min=0></div>"
 "<div><label>Cambio de pagina (s, 0=manual)</label><input name=page_dwell_s type=number min=0></div></div>"
 "<div class=grid><div><label>Ventana de graficas (min)</label><input name=chart_span_min type=number min=5 max=1440></div>"
-"<div><label>Paginas visibles</label><input name=pages_mask type=number min=1 max=31></div></div>"
+"<div><label>Paginas visibles</label><input name=pages_mask type=number min=1 max=63></div></div>"
 "<div class=grid><div><label>Correccion de temperatura (C)</label><input name=temp_offset type=number step=0.1></div>"
 "<div><label>Altitud (m)</label><input name=altitude_m type=number min=0 max=3000></div></div>"
 "<div class=grid><div><label>Calibracion del ruido (dB)</label>"
@@ -347,7 +347,7 @@ static esp_err_t h_settings_post(httpd_req_t *req)
     if (get_num(root, "screen_timeout_s", &d)) c->screen_timeout_s = (uint16_t)(d < 0 ? 0 : d);
     if (get_num(root, "page_dwell_s", &d))     c->page_dwell_s = (uint16_t)(d < 0 ? 0 : d);
     if (get_num(root, "chart_span_min", &d))   c->chart_span_min = (uint16_t)(d < 5 ? 5 : (d > 1440 ? 1440 : d));
-    if (get_num(root, "pages_mask", &d))       c->pages_mask = (uint8_t)(d < 1 ? 1 : (d > 31 ? 31 : d));
+    if (get_num(root, "pages_mask", &d))       c->pages_mask = (uint8_t)(d < 1 ? 1 : (d > 63 ? 63 : d));
     if (get_num(root, "temp_offset", &d))      c->temp_offset_dc = (int16_t)lrint(d * 10.0);
     if (get_num(root, "altitude_m", &d))       c->altitude_m = (uint16_t)(d < 0 ? 0 : (d > 3000 ? 3000 : d));
     if (get_num(root, "co2_asc", &d))          c->co2_asc = (d != 0);

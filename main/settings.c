@@ -73,6 +73,10 @@ esp_err_t settings_load(void)
             ESP_LOGI(TAG, "configuracion de una version anterior (%u de %u bytes):"
                           " los campos nuevos quedan por defecto",
                      (unsigned)len, (unsigned)sizeof(tmp));
+            // La pagina de ruido es nueva. Quien tenia TODAS las paginas
+            // activas (mascara 31, las cinco de entonces) las quiere todas,
+            // asi que se le anade; quien habia quitado alguna se respeta.
+            if (tmp.pages_mask == 0x1F) tmp.pages_mask = (1 << SETTINGS_PAGES) - 1;
         }
         s_cfg = tmp;
         ESP_LOGI(TAG, "configuracion cargada (wifi='%s', mqtt='%s')",

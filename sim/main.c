@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
     const ui_config_t cfg = {
         
-        .pages_mask = 0x1F,
+        .pages_mask = (1 << UI_PAGE_COUNT) - 1,
         .chart_span_min = 60,
         .brightness = 200,
         .night_brightness = 20,
