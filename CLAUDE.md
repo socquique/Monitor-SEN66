@@ -50,6 +50,13 @@ táctil, PMU, RTC o audio**, y añadirle lo que se aprenda.
   fondo. La línea pasa por detrás de los brazos del arco y la recorta el
   cristal, que es el efecto del PowerDot. Ojo: cruzándola por el centro tapa
   el número — tiene que ir de banda inferior (y≈+100), probado.
+- **Esa banda inferior se come el texto que caiga dentro.** Con 90 px de alto
+  centrados en +100, la gráfica ocupa de +55 a +145. Gases es la única página
+  con gráfica que además lleva texto ahí (el aviso "100 = ambiente habitual",
+  a +118) y la curva lo tachaba de lado a lado. Solución: fondo opaco del
+  color de la pantalla detrás del texto, que es lo que ya hace el anillo en
+  CO2. Antes de meter una gráfica en una página, mirar qué vive entre +55
+  y +145.
 - **Los dos anillos no son la misma cosa.** El del resumen es un semáforo que
   se pinta entero y lleva indicador del mismo grosor que la pista; los de
   medida llevan el indicador 8 px más fino, porque a igual grosor un valor
@@ -76,6 +83,31 @@ Firmware:
 source ~/esp/esp-idf/export.sh && idf.py build
 idf.py -p /dev/cu.usbmodem1101 flash monitor
 ```
+
+### Publicar en el instalador web
+
+`flash.html` de GitHub Pages es lo que instala a la gente que no compila. **No
+hay CI**: el repo no tiene `.github/workflows`, así que nada se publica solo.
+Todo vive en la rama `gh-pages` y se sube a mano:
+
+1. Merge a `main` y **subir `APP_VERSION` en `main/version.h`**. El instalador
+   sirve la versión que diga `firmware/manifest.json`; si no se toca, la web
+   ofrece bytes distintos bajo el mismo número.
+2. **El binario del instalador NO es el de la OTA.** El manifest declara una
+   sola parte en `"offset": 0`, o sea imagen fusionada (bootloader + tabla de
+   particiones + app). `build/monitor_sen66.bin` es solo la app: publicado a
+   offset 0 da un aparato que no arranca. Hace falta `idf.py merge-bin`.
+3. Commit en `gh-pages`: el `.bin` nuevo en `firmware/` y el `manifest.json`
+   con `version` y `path` actualizados.
+4. **Las capturas de `img/` también caducan.** Son las páginas de la UI, y
+   `index.html` dice a mano cuántas hay ("Cinco páginas", "nueve magnitudes").
+   Se regeneran con el simulador, que las da al mismo tamaño que el panel:
+
+   ```bash
+   ./build/sen66_sim --page N --warp 1 --offset 900 --scenario good --shots DIR 1
+   ```
+
+   Sin `--page` y con 4 capturas, la tercera cae ya en la vista de reposo.
 
 ## Ya verificado contra el hardware (20-08-2026)
 
