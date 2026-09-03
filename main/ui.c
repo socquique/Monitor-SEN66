@@ -314,7 +314,7 @@ static void build_pm(lv_obj_t *tile)
 static void build_gas(lv_obj_t *tile)
 {
     // Misma gramatica que CO2 y clima: la grafica va PRIMERO, a sangre y por
-    // debajo de las dos esferas, en banda inferior (y≈+100) para no cruzar
+    // debajo de las dos esferas, en banda inferior (y~+100) para no cruzar
     // las cifras. VOC en el eje primario, NOx en el secundario: comparten
     // dibujo pero no escala, igual que temperatura/humedad en clima.
     chart_create(&s_gas_chart, &s_gas_ser_voc, tile, 430, 90, 0xa78bfa);
@@ -342,6 +342,13 @@ static void build_gas(lv_obj_t *tile)
     // A +134 el aviso se solapaba con el indicador de bateria, que vive a
     // +148. Subirlo 16 px los separa.
     lv_obj_align(hint, LV_ALIGN_CENTER, 0, 118);
+    // Pero a +118 el aviso cae DENTRO de la banda de la grafica (+55..+145) y
+    // la linea lo tachaba de lado a lado: es la unica pagina con grafica que
+    // lleva texto ahi. Fondo opaco del color de la pantalla para que la curva
+    // pase por detras, la misma solucion que ya aplica el anillo en CO2.
+    lv_obj_set_style_bg_color(hint, col(0x000000), 0);
+    lv_obj_set_style_bg_opa(hint, LV_OPA_COVER, 0);
+    lv_obj_set_style_pad_hor(hint, 6, 0);
 }
 
 static void build_climate(lv_obj_t *tile)
