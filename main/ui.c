@@ -72,6 +72,8 @@ static lv_obj_t *s_noise_level, *s_noise_chart;
 static lv_chart_series_t *s_noise_ser;
 static lv_obj_t *s_cl_temp, *s_cl_hum, *s_cl_chart;
 static lv_chart_series_t *s_cl_ser, *s_cl_ser_hum;
+static lv_obj_t *s_gas_chart;
+static lv_chart_series_t *s_gas_ser_voc, *s_gas_ser_nox;
 
 static uint32_t s_idle_s;
 static bool s_dimmed;
@@ -311,6 +313,14 @@ static void build_pm(lv_obj_t *tile)
 
 static void build_gas(lv_obj_t *tile)
 {
+    // Misma gramatica que CO2 y clima: la grafica va PRIMERO, a sangre y por
+    // debajo de las dos esferas, en banda inferior (y≈+100) para no cruzar
+    // las cifras. VOC en el eje primario, NOx en el secundario: comparten
+    // dibujo pero no escala, igual que temperatura/humedad en clima.
+    chart_create(&s_gas_chart, &s_gas_ser_voc, tile, 430, 90, 0xa78bfa);
+    s_gas_ser_nox = chart_add_secondary(s_gas_chart, 0x38bdf8);
+    lv_obj_align(s_gas_chart, LV_ALIGN_CENTER, 0, 100);
+
     lv_obj_t *title = make_label(tile, &ui_font_16, 0x94a3b8);
     lv_label_set_text(title, T(STR_PAGE_GASES));
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
@@ -639,6 +649,8 @@ void ui_update(const air_sample_t *s)
         case PAGE_GAS:
             gauge_update(&s_g_voc, AIR_VOC, s->v[AIR_VOC]);
             gauge_update(&s_g_nox, AIR_NOX, s->v[AIR_NOX]);
+            chart_refresh_axis(s_gas_chart, s_gas_ser_voc, AIR_VOC, LV_CHART_AXIS_PRIMARY_Y);
+            chart_refresh_axis(s_gas_chart, s_gas_ser_nox, AIR_NOX, LV_CHART_AXIS_SECONDARY_Y);
             break;
         case PAGE_CLIMATE: {
             fmt_value(buf2, sizeof(buf2), AIR_TEMP, s->v[AIR_TEMP]);
