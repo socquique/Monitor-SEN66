@@ -311,14 +311,20 @@ static void build_pm(lv_obj_t *tile)
     }
 }
 
+// Un solo sitio para cada color: la linea de la grafica y el rotulo de su
+// esfera son la misma magnitud, y con dos literales sueltos acaban separandose
+// en cuanto alguien retoque uno.
+#define GAS_COL_VOC 0xa78bfa
+#define GAS_COL_NOX 0x38bdf8
+
 static void build_gas(lv_obj_t *tile)
 {
     // Misma gramatica que CO2 y clima: la grafica va PRIMERO, a sangre y por
     // debajo de las dos esferas, en banda inferior (y~+100) para no cruzar
     // las cifras. VOC en el eje primario, NOx en el secundario: comparten
     // dibujo pero no escala, igual que temperatura/humedad en clima.
-    chart_create(&s_gas_chart, &s_gas_ser_voc, tile, 430, 90, 0xa78bfa);
-    s_gas_ser_nox = chart_add_secondary(s_gas_chart, 0x38bdf8);
+    chart_create(&s_gas_chart, &s_gas_ser_voc, tile, 430, 90, GAS_COL_VOC);
+    s_gas_ser_nox = chart_add_secondary(s_gas_chart, GAS_COL_NOX);
     lv_obj_align(s_gas_chart, LV_ALIGN_CENTER, 0, 100);
 
     lv_obj_t *title = make_label(tile, &ui_font_16, 0x94a3b8);
@@ -331,11 +337,14 @@ static void build_gas(lv_obj_t *tile)
     lv_obj_set_size(left, 176, 176);
     lv_obj_align(left, LV_ALIGN_CENTER, -88, 14);
     gauge_create(&s_g_voc, left, 168, 16, &ui_font_48, &ui_font_14);
+    // El rotulo, del color de su curva: asi se sabe cual linea es cual.
+    lv_obj_set_style_text_color(s_g_voc.caption, col(GAS_COL_VOC), 0);
 
     lv_obj_t *right = plain(tile);
     lv_obj_set_size(right, 176, 176);
     lv_obj_align(right, LV_ALIGN_CENTER, 88, 14);
     gauge_create(&s_g_nox, right, 168, 16, &ui_font_48, &ui_font_14);
+    lv_obj_set_style_text_color(s_g_nox.caption, col(GAS_COL_NOX), 0);
 
     lv_obj_t *hint = make_label(tile, &ui_font_14, 0x64748b);
     lv_label_set_text(hint, T(STR_GAS_HINT));
