@@ -255,7 +255,7 @@ página donde estabas.
 |---|---|
 | Resumen | Anillo semáforo con el peor de los contaminantes y qué métrica manda |
 | CO₂ | Valor grande, anillo 400–2400 ppm y gráfica de la última hora |
-| Partículas | PM2.5 en grande con anillo; PM1.0 / PM4.0 / PM10 debajo |
+| Partículas | PM2.5 en grande con anillo y su curva al fondo; PM1.0 / PM4.0 / PM10 debajo |
 | Gases | Índices VOC y NOx en dos anillos |
 | Clima | Temperatura y humedad, y ambas curvas superpuestas con escala propia |
 | Ruido | Nivel en dB con anillo 30–90 y gráfica; ver la nota de calibración |

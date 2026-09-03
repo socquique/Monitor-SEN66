@@ -68,6 +68,8 @@ static lv_obj_t *s_sum_name[4], *s_sum_val[4];
 static lv_obj_t *s_pm_level, *s_pm_name[3], *s_pm_val[3];
 static lv_obj_t *s_co2_level, *s_co2_chart;
 static lv_chart_series_t *s_co2_ser;
+static lv_obj_t *s_pm_chart;
+static lv_chart_series_t *s_pm_ser;
 static lv_obj_t *s_noise_level, *s_noise_chart;
 static lv_chart_series_t *s_noise_ser;
 static lv_obj_t *s_cl_temp, *s_cl_hum, *s_cl_chart;
@@ -290,8 +292,18 @@ static void build_co2(lv_obj_t *tile)
     lv_obj_align(s_co2_level, LV_ALIGN_CENTER, 0, 26);
 }
 
+// Turquesa: los otros colores de serie ya estan cogidos (CO2 azul, VOC
+// violeta, NOx celeste, ruido ambar).
+#define PM_COL 0x2dd4bf
+
 static void build_pm(lv_obj_t *tile)
 {
+    // La grafica, PRIMERO y a sangre, para que quede por debajo del anillo.
+    // Solo la PM2.5: es la que manda en esta pagina y la que importa para
+    // salud; cuatro curvas casi identicas no dirian nada.
+    chart_create(&s_pm_chart, &s_pm_ser, tile, 430, 90, PM_COL);
+    lv_obj_align(s_pm_chart, LV_ALIGN_CENTER, 0, 100);
+
     // Misma gramatica visual que el CO2: anillo y cifra grande. Antes eran
     // cuatro barras identicas en letra de 16 px, sin jerarquia y dejando
     // vacio el tercio inferior. La PM2.5 es la que importa para salud, asi
@@ -308,6 +320,15 @@ static void build_pm(lv_obj_t *tile)
     for (int i = 0; i < 3; i++) {
         mini_create(tile, &s_pm_name[i], &s_pm_val[i], dx[i], 64,
                     &ui_font_22);
+        // Las tres cifras caen DENTRO de la banda de la grafica (+55..+145),
+        // asi que sin esto la curva las tacharia. Fondo opaco del color de la
+        // pantalla y la linea pasa por detras y asoma por los huecos, igual
+        // que hace el aviso de la pagina de gases.
+        for (lv_obj_t *o = s_pm_name[i]; o; o = (o == s_pm_name[i]) ? s_pm_val[i] : NULL) {
+            lv_obj_set_style_bg_color(o, col(0x000000), 0);
+            lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+            lv_obj_set_style_pad_hor(o, 5, 0);
+        }
     }
 }
 
@@ -655,6 +676,8 @@ void ui_update(const air_sample_t *s)
             const air_level_t lvl = air_level(AIR_PM25, s->v[AIR_PM25]);
             lv_label_set_text(s_pm_level, i18n_level(lvl));
             lv_obj_set_style_text_color(s_pm_level, col(air_level_color(lvl)), 0);
+
+            chart_refresh(s_pm_chart, s_pm_ser, AIR_PM25);
 
             static const air_metric_t otras[3] = {AIR_PM1, AIR_PM4, AIR_PM10};
             for (int i = 0; i < 3; i++) {

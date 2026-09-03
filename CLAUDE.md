@@ -51,12 +51,13 @@ táctil, PMU, RTC o audio**, y añadirle lo que se aprenda.
   cristal, que es el efecto del PowerDot. Ojo: cruzándola por el centro tapa
   el número — tiene que ir de banda inferior (y≈+100), probado.
 - **Esa banda inferior se come el texto que caiga dentro.** Con 90 px de alto
-  centrados en +100, la gráfica ocupa de +55 a +145. Gases es la única página
-  con gráfica que además lleva texto ahí (el aviso "100 = ambiente habitual",
-  a +118) y la curva lo tachaba de lado a lado. Solución: fondo opaco del
-  color de la pantalla detrás del texto, que es lo que ya hace el anillo en
-  CO2. Antes de meter una gráfica en una página, mirar qué vive entre +55
-  y +145.
+  centrados en +100, la gráfica ocupa de +55 a +145. Dos páginas llevan texto
+  ahí: gases (el aviso "100 = ambiente habitual", a +118) y partículas (las
+  cifras de PM1.0/PM4.0/PM10, de +57 a +97). En las dos la curva los tachaba
+  de lado a lado. Solución: fondo opaco del color de la pantalla detrás del
+  texto, que es lo que ya hace el anillo en CO2; la línea pasa por detrás y
+  asoma por los huecos. Antes de meter una gráfica en una página, mirar qué
+  vive entre +55 y +145.
 - **Los dos anillos no son la misma cosa.** El del resumen es un semáforo que
   se pinta entero y lleva indicador del mismo grosor que la pista; los de
   medida llevan el indicador 8 px más fino, porque a igual grosor un valor
