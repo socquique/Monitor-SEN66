@@ -15,7 +15,10 @@
 #define UI_PAGE_COUNT 6
 
 typedef struct {
-    uint16_t page_dwell_s;     // 0 = sin rotacion automatica
+    uint16_t page_dwell_s;     // SIN USO: la rotacion automatica se quito,
+                               // las paginas se pasan a dedo. El campo sigue en
+                               // settings_t porque quitarlo de en medio romperia
+                               // la compatibilidad del blob de NVS.
     uint8_t pages_mask;        // bit i = pagina i visible
     uint16_t chart_span_min;   // ventana de las graficas
     uint8_t brightness;        // 1..255
@@ -36,6 +39,10 @@ void ui_update(const air_sample_t *s);
 // que un aparato enchufado no necesita indicador.
 void ui_set_status(const char *time_str, bool wifi, bool mqtt, const char *msg,
                    int bat_pct, bool charging);
+
+// Direccion IP para enseñarla en la vista de reposo. Sin ella, la unica forma
+// de saber donde esta el panel web es mirar el router. Cadena vacia = no hay.
+void ui_set_ip(const char *ip);
 
 // Llamar una vez por segundo: rotacion de pagina y atenuado por inactividad.
 void ui_tick_1s(void);

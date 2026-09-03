@@ -197,6 +197,7 @@ int main(int argc, char **argv)
             // tramos de color; en capturas se fija, o las imagenes de la
             // documentacion salen con la bateria en rojo y parece una averia.
             int bat = shots_dir ? 82 : 100 - (int)((vnow_s / 40) % 105);
+            ui_set_ip("192.168.1.42");
             ui_set_status(hhmm, true, true, "", bat < 0 ? 0 : bat, false);
             ui_tick_1s();
         }

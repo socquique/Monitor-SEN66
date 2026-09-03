@@ -509,6 +509,7 @@ static void ui_timer_cb(lv_timer_t *t)
         bat_pct = b.percent;
         charging = b.charging;
     }
+    ui_set_ip(net_ip());
     ui_set_status(time_str, net_state() == NET_CONNECTED, ha_mqtt_connected(), msg,
                   bat_pct, charging);
     ui_set_on_battery(s_on_battery);

@@ -53,6 +53,7 @@ static lv_obj_t *s_idle_panel;
 static lv_obj_t *s_idle_val[AIR_METRIC_COUNT];
 static lv_obj_t *s_idle_level;
 static lv_obj_t *s_idle_noise_name;
+static lv_obj_t *s_idle_ip;
 static bool s_idle_shown;
 static lv_obj_t *s_dots[UI_PAGE_COUNT];
 
@@ -434,6 +435,13 @@ static void build_idle(lv_obj_t *scr)
     s_idle_val[AIR_NOISE] = make_label(s_idle_panel, &ui_font_16, 0xffffff);
     lv_obj_align(s_idle_val[AIR_NOISE], LV_ALIGN_CENTER, 26, -64);
 
+    // La IP, abajo del todo: es la vista que se mira cuando quieres datos, y
+    // sin esto hay que ir al router para dar con el panel web. Encima del
+    // indicador de bateria (+148), que vive en la chrome.
+    s_idle_ip = make_label(s_idle_panel, &ui_font_14, 0x475569);
+    lv_obj_set_style_text_align(s_idle_ip, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(s_idle_ip, LV_ALIGN_CENTER, 0, 126);
+
     static const air_metric_t orden[9] = {
         AIR_CO2,  AIR_TEMP, AIR_HUM,
         AIR_PM1,  AIR_PM25, AIR_PM4,
@@ -790,6 +798,12 @@ void ui_wake(void)
         s_dimmed = false;
         if (s_set_brightness) s_set_brightness(s_cfg.brightness);
     }
+}
+
+void ui_set_ip(const char *ip)
+{
+    if (!s_idle_ip) return;
+    lv_label_set_text(s_idle_ip, (ip && ip[0]) ? ip : "");
 }
 
 void ui_tick_1s(void)
