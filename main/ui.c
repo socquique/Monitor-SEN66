@@ -337,14 +337,19 @@ static void build_gas(lv_obj_t *tile)
     lv_obj_set_size(left, 176, 176);
     lv_obj_align(left, LV_ALIGN_CENTER, -88, 14);
     gauge_create(&s_g_voc, left, 168, 16, &ui_font_48, &ui_font_14);
-    // El rotulo, del color de su curva: asi se sabe cual linea es cual.
+    // Rotulo y numero, del color de su curva: en esta pagina hay dos esferas
+    // y dos lineas, y hace falta saber cual va con cual. El ARCO se queda con
+    // el color del nivel (verde/ambar/rojo): es el semaforo que hablan todas
+    // las paginas, y cambiarlo aqui por un color fijo lo perderia.
     lv_obj_set_style_text_color(s_g_voc.caption, col(GAS_COL_VOC), 0);
+    lv_obj_set_style_text_color(s_g_voc.value, col(GAS_COL_VOC), 0);
 
     lv_obj_t *right = plain(tile);
     lv_obj_set_size(right, 176, 176);
     lv_obj_align(right, LV_ALIGN_CENTER, 88, 14);
     gauge_create(&s_g_nox, right, 168, 16, &ui_font_48, &ui_font_14);
     lv_obj_set_style_text_color(s_g_nox.caption, col(GAS_COL_NOX), 0);
+    lv_obj_set_style_text_color(s_g_nox.value, col(GAS_COL_NOX), 0);
 
     lv_obj_t *hint = make_label(tile, &ui_font_14, 0x64748b);
     lv_label_set_text(hint, T(STR_GAS_HINT));
