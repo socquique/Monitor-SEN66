@@ -763,7 +763,10 @@ void ui_set_on_battery(bool on_battery)
 {
     if (on_battery == s_on_battery) return;
     s_on_battery = on_battery;
-    ui_wake(); // al cambiar de perfil, encender y volver a contar
+    // Al ENCHUFAR se enciende: acabas de acercarte al aparato y quieres verlo.
+    // Al desenchufar NO, que es justo cuando hay que ahorrar; ademas el tope
+    // de bateria es corto y se apagara sola enseguida.
+    if (!on_battery) ui_wake();
 }
 
 void ui_idle_debug(uint32_t *idle_s, bool *dimmed, bool *idle_shown)

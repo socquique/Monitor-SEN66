@@ -78,6 +78,10 @@ static const char *TAG = "app";
 // Cada cuanto anotar la bateria en el log. Sirve para medir el consumo real:
 // dos puntos separados en el tiempo dan la pendiente de descarga.
 #define BATT_LOG_PERIOD_S 300
+// Cada cuanto se PREGUNTA por la alimentacion (distinto de cada cuanto se
+// registra): de esto depende lo que tarda la pantalla en encenderse al
+// enchufar el cable.
+#define PMU_POLL_PERIOD_S 2
 
 static air_history_t *s_hist;
 static SemaphoreHandle_t s_lock;
@@ -344,6 +348,7 @@ static void sensor_task(void *arg)
     int64_t next_mqtt_us = 0;
     int64_t next_retry_us = 0;
     int64_t next_batt_us = 0;
+    int64_t next_pmu_us = 0;
     int64_t next_voc_us = esp_timer_get_time() + (int64_t)VOC_SAVE_PERIOD_S * 1000000;
     int64_t alive_since_us = esp_timer_get_time();
 
@@ -353,20 +358,25 @@ static void sensor_task(void *arg)
         const int64_t now = esp_timer_get_time();
 
         // ---- perfil segun haya USB o no ----
-        if (pmu_available() && now >= next_batt_us) {
-            next_batt_us = now + (int64_t)BATT_LOG_PERIOD_S * 1000000;
+        // DETECTAR el cambio y REGISTRARLO son dos cadencias distintas. Iban
+        // juntas cada 5 minutos, y por eso enchufar el cable no encendia la
+        // pantalla: el aparato no se enteraba hasta cinco minutos despues.
+        // pmu_read() ya cachea ~2 s, asi que preguntar a ese ritmo es gratis.
+        if (pmu_available() && now >= next_pmu_us) {
+            next_pmu_us = now + (int64_t)PMU_POLL_PERIOD_S * 1000000;
             pmu_status_t b;
             if (pmu_read(&b) == ESP_OK) {
-                if (b.present) {
-                    ESP_LOGI(TAG, "bateria %d%% (%u mV)%s", b.percent, b.millivolts,
-                             b.charging ? " cargando" : b.vbus ? " con USB" : " EN BATERIA");
-                }
                 const bool sin_usb = b.present && !b.vbus;
                 if (sin_usb != on_battery) {
                     on_battery = sin_usb;
                     ESP_LOGW(TAG, "perfil de %s", on_battery ? "BATERIA" : "red");
                     net_set_power_save(on_battery);
                     s_on_battery = on_battery; // la UI lo recoge en su tick
+                }
+                if (b.present && now >= next_batt_us) {
+                    next_batt_us = now + (int64_t)BATT_LOG_PERIOD_S * 1000000;
+                    ESP_LOGI(TAG, "bateria %d%% (%u mV)%s", b.percent, b.millivolts,
+                             b.charging ? " cargando" : b.vbus ? " con USB" : " EN BATERIA");
                 }
             }
         }
