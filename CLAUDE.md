@@ -159,6 +159,19 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
   TRANSMISION**, que `sound.c` solo encendia mientras sonaba un aviso — sin
   MCLK el ES7210 no entrega nada. Ahora queda habilitado siempre y el
   amplificador se sigue apagando entre avisos.
+- **El ruido esta calibrado en 112 dB de desfase** (09-09-2026), medido con una
+  app de sonometro del movil pegada al aparato y dos anclajes separados 10 dB:
+  ambiente 54,6 dB contra −57,8 dBFS, musica 64,2 contra −48,1. Salen 112,4 y
+  112,2, o sea **desplazamiento constante y no pendiente**, que es lo unico que
+  una constante puede corregir. Los 120 de fabrica venian de una comparacion
+  contra un Qingping que **no vale**: 1.983 muestras dan correlacion 0,583, y en
+  la prueba final el monitor subio 26 dB sobre su suelo mientras el Qingping
+  seguia en sus 36 dB estando vivo. **El ruido no se iguala en una habitacion
+  como el CO2 o la temperatura**, asi que dos aparatos en sitios distintos no se
+  pueden comparar. Hay que promediar en energia ventanas de decenas de segundos
+  a la vez en los dos lados: dos lecturas instantaneas con musica dieron 95 y
+  111 segun el segundo elegido.
+
 - **El ruido del ventilador del SEN66 NO es medible** por encima del ruido de
   la sala. Primera medida: +5,2 dB. Repetida en silencio: −5,6 dB, o sea
   imposible. Lo que vale para un suelo es el minimo, y ahi sale −69,3 dBFS con

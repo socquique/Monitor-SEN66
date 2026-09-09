@@ -38,9 +38,14 @@ void settings_defaults(settings_t *s)
     s->alarm_clear_ppm = 1000; // histeresis: no pita cada vez que roza el umbral
     s->alarm_volume = 60;
     strcpy(s->lang, "es");
-    // Provisional: sacado de una sola comparacion contra un Qingping, que no
-    // es un patron. Sirve para que el numero sea plausible, no exacto.
-    s->noise_offset_db = 120;
+    // Medido (09-09-2026), no supuesto: dos anclajes separados 10 dB contra
+    // una app de sonometro del movil dieron 112,4 y 112,2. Que las dos cifras
+    // coincidan es lo que importa: el desvio es un desplazamiento constante,
+    // no una pendiente, asi que una sola constante vale para todo el rango.
+    // La referencia es un movil, no un sonometro de clase 2, de modo que el
+    // cero puede estar corrido un par de dB para todos por igual; la ganancia
+    // del ES7210 esta fijada en el driver, asi que el valor vale placa a placa.
+    s->noise_offset_db = 112;
 }
 
 esp_err_t settings_load(void)

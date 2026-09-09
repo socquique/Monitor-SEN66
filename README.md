@@ -383,13 +383,36 @@ metrica mas, asi que hereda historial, graficas, panel web y descubrimiento
 de Home Assistant sin nada especifico; lo unico propio es el driver y el paso
 a decibelios. **No cuenta para el semaforo global**: no es calidad del aire.
 
-**El nivel hay que calibrarlo.** Del microfono sale un nivel a fondo de escala
-(dBFS, siempre negativo); pasarlo a dB SPL exige la sensibilidad del micro y
-la ganancia del codec, y eso se mide, no se deduce. El panel tiene el campo
-"Calibracion del ruido": se pone el aparato al lado de un sonometro de
-referencia y se ajusta hasta que coincidan. El valor por defecto, 102 dB, sale
-de una sola comparacion contra otro medidor domestico, asi que da un numero
-plausible y poco mas.
+**El nivel esta calibrado** (09-09-2026). Del microfono sale un nivel a fondo
+de escala (dBFS, siempre negativo); pasarlo a dB SPL exige la sensibilidad del
+micro y la ganancia del codec, y eso se mide, no se deduce. El desfase por
+defecto es **112 dB**, y sale de dos anclajes con una app de sonometro del
+movil pegada al aparato, promediando en energia una ventana de cada uno:
+
+| | referencia | monitor | desfase |
+|---|---|---|---|
+| ambiente | 54,6 dB | −57,8 dBFS | 112,4 |
+| musica | 64,2 dB | −48,1 dBFS | 112,2 |
+
+Dos decimas de diferencia en un rango de 10 dB: **es un desplazamiento
+constante, no una pendiente**, que es justo lo que un solo numero puede
+corregir. Comprobarlo era el objetivo de usar dos niveles y no uno — con el
+CO2 el desvio resulto ser de pendiente y ahi ningun offset sirve.
+
+Dos avisos honestos. La referencia es un movil, no un sonometro de clase 2:
+el cero puede estar corrido un par de dB, igual para todos. Y hay que promediar
+ventanas de decenas de segundos en los dos lados a la vez; con musica, dos
+lecturas instantaneas separadas por unos segundos llegaron a dar desfases de 95
+y 111. El campo "Calibracion del ruido" del panel permite reajustarlo contra un
+patron mejor.
+
+**Lo que NO sirve para calibrar esto es otro medidor domestico de la casa.**
+Se intento contra un Qingping y no hay manera: en 1.983 muestras emparejadas la
+correlacion es de 0,583, y en la prueba final el monitor llego a −41,6 dBFS
+(26 dB sobre su suelo) mientras el Qingping seguia clavado en sus 36 dB estando
+vivo. El CO2 y la temperatura se igualan en una habitacion; **el ruido no**,
+depende de donde este cada aparato. Sobre esa comparacion inservible se estimo
+antes un desfase de 102, que era falso.
 
 **Sobre el ventilador del SEN66**, que esta dentro de la misma carcasa: la
 sospecha razonable era que fijara el suelo de ruido. Se midio parando la
