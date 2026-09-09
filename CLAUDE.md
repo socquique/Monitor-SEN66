@@ -172,12 +172,26 @@ firmware 4.1) funcionando en GPIO17/18. Lo que se aprendió:
   a la vez en los dos lados: dos lecturas instantaneas con musica dieron 95 y
   111 segun el segundo elegido.
 
-- **El ruido del ventilador del SEN66 NO es medible** por encima del ruido de
-  la sala. Primera medida: +5,2 dB. Repetida en silencio: −5,6 dB, o sea
-  imposible. Lo que vale para un suelo es el minimo, y ahi sale −69,3 dBFS con
-  ventilador contra −67,0 sin el. **Corregido: la primera cifra era ruido de
-  la sala, no del ventilador.** Enesima version de la misma leccion: una
-  diferencia entre dos ventanas cortas no es una medida.
+- **El ventilador del SEN66 aporta 0,9 dB al suelo de ruido** (09-09-2026), o
+  sea el ventilador solo esta en unos **36 dB SPL**: real pero quince dB por
+  debajo de una habitacion normal. Ocho ventanas de 45 s alternando, mirando el
+  **minimo**: ON −68,0 −68,0 −68,4 −69,1 −69,3 (media −68,6) contra OFF −69,2
+  −69,6 −69,6 (media −69,5). Los tres OFF por debajo de los cinco ON y con un
+  cuarto de su dispersion. **Esto corrige el intento de agosto**, que con
+  ventanas cortas dio +5,2 dB y luego −5,6 dB (imposible) y se cerro como "no
+  medible": fallaba el metodo, no el ventilador. Recetas que lo desbloquearon:
+  ventanas de 45 s, el minimo o el percentil 5 como estadistica, y **alternar
+  A/B/A/B en vez de medir A una vez y B otra**.
+- **El nivel que se publica es instantaneo** (RMS de 125 ms), no un promedio,
+  **el suelo del aparato esta en 43 dB** y **no hay ponderacion A**: el calculo
+  es el RMS crudo. Las tres cosas juntas explican que marque 53 dB donde un
+  medidor domestico marca 37 sin que ninguno este mal. La curva A quita sobre
+  todo graves, que es lo unico que queda en una sala silenciosa, asi que la
+  diferencia es grande abajo y pequeña con musica — por eso a 75 dB coincide
+  con el Qingping dentro de 2 dB. **No se puede saber cuanto es suelo y cuanto
+  es ponderacion** con los datos que hay: una app de movil da 28 dB de minimo
+  donde el monitor no baja de 43. Practico: por debajo de ~50 dB el numero no
+  vale. Si algun dia importa el rango bajo, el paso es ponderar A en `mic.c`.
 
 - **El flujo de aire de la carcasa AirRing está verificado** (22-08-2026), no
   supuesto. El SEN66 tiene dos entradas (hueco cuadrado y membrana) y una

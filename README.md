@@ -414,15 +414,55 @@ vivo. El CO2 y la temperatura se igualan en una habitacion; **el ruido no**,
 depende de donde este cada aparato. Sobre esa comparacion inservible se estimo
 antes un desfase de 102, que era falso.
 
+**El numero es instantaneo, no un promedio.** Lo que se publica es el RMS de
+los ultimos 125 ms tal cual, la ponderacion "rapida" de un sonometro. Salta
+mucho: en una misma ventana de sala en silencio va de −69 a −55 dBFS. No es
+comparable con lo que da un medidor domestico que promedia por minutos — de
+ahi que este pueda marcar 53 dB mientras otro en la misma mesa marca 37 sin
+que ninguno de los dos este mal. Un pico corto sube a uno y al otro no.
+
+**El suelo del aparato esta en unos 43 dB** (−69,2 dBFS medido con el
+ventilador parado). Por debajo de eso no distingue: da su propio ruido.
+
+**Y no lleva ponderacion A.** El calculo es el RMS crudo de la señal; un
+sonometro, una app de movil o el Qingping aplican la curva A, que descarta los
+graves porque el oido tampoco los oye. Con musica, de banda ancha, la
+diferencia es pequeña — de ahi que a 75 dB coincidiera con el Qingping dentro
+de 2 dB. En una habitacion en silencio lo que queda es justo grave (nevera,
+trafico lejano, la fuente de alimentacion) y ahi la curva A resta facilmente
+10-15 dB.
+
+Asi que el exceso en silencio tiene **dos causas candidatas**, el suelo del
+micro y la falta de ponderacion, y con estos datos no se pueden separar: una
+app de movil marcaba 28 dB de minimo donde el monitor no baja de 43. Da igual
+cual mande, la conclusion practica es la misma: **por debajo de ~50 dB el
+numero no vale**, y de 55 para arriba si. Anadir ponderacion A al filtro de
+`mic.c` es el siguiente paso si algun dia importa el rango bajo.
+
 **Sobre el ventilador del SEN66**, que esta dentro de la misma carcasa: la
 sospecha razonable era que fijara el suelo de ruido. Se midio parando la
-medicion (`/api/fan`) y comparando. Dos intentos, y en el segundo salio que
-con el ventilador en marcha se media MENOS que parado, que es imposible: la
-diferencia la manda la variacion de la sala, no el ventilador. Mirando lo que
-de verdad importa para un suelo, el minimo, sale −69,3 dBFS con el ventilador
-girando frente a −67,0 con el parado. **Conclusion: el ventilador queda por
-debajo de lo que este metodo puede medir.** No es que aporte poco, es que no
-se distingue.
+medicion (`/api/fan`) y comparando. **Primer intento (ago-2026), fallido**:
+con ventanas cortas salio que girando se media MENOS que parado, que es
+imposible; lo mandaba la variacion de la sala.
+
+**Segundo intento (09-09-2026), con cifra**: ocho ventanas de 45 s alternando
+ON y OFF, mirando el **minimo**, que es la estadistica que vale para un suelo
+(la media energetica la mandan los picos de la sala, no el aparato).
+
+| | minimos, dBFS | media | rango |
+|---|---|---|---|
+| ventilador ON | −68,0 −68,0 −68,4 −69,1 −69,3 | −68,6 | 1,3 |
+| ventilador OFF | −69,2 −69,6 −69,6 | **−69,5** | **0,4** |
+
+**Los tres OFF caen por debajo de los cinco ON**, y ademas son mucho mas
+repetibles entre si — justo lo que se espera si al parar el ventilador queda
+solo el ruido propio del micro. Despejando, el ventilador solo esta en unos
+**36 dB SPL**: quince por debajo de lo que marca una habitacion normal.
+
+**Conclusion: es real pero irrelevante**, no "inaudible por falta de metodo"
+como se cerro la primera vez. Con honestidad: la diferencia son 0,9 dB y los
+propios ON varian 1,3 dB entre ventanas, o sea que sigue rozando el limite de
+lo que el metodo resuelve. Lo que ya no falla es el signo.
 
 ### La carcasa y el aire
 

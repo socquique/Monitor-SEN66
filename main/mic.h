@@ -6,10 +6,16 @@
 // MISMO puerto que la reproduccion, en full-duplex: el canal de RX lo crea
 // sound_init() y aqui solo se usa.
 //
-// De momento esto NO da decibelios reales: da nivel a fondo de escala
-// (dBFS, siempre negativo). Convertirlo a dB SPL exige conocer la
-// sensibilidad del microfono y la ganancia del codec, y eso se calibra
-// contra una referencia, no se deduce.
+// Esto da nivel a fondo de escala (dBFS, siempre negativo). El paso a dB SPL
+// lo hace app_main sumando settings->noise_offset_db, que vale 112 medido
+// (ver README). Tres limites que hay que tener presentes antes de fiarse del
+// numero:
+//   - Es INSTANTANEO: el RMS de los ultimos 125 ms, no un promedio. Salta.
+//   - El suelo de la placa esta en unos -69 dBFS (~43 dB SPL). Por debajo de
+//     ahi lo que se mide es el ruido propio del micro.
+//   - NO hay ponderacion A. Con banda ancha da igual, pero en una sala
+//     silenciosa, donde solo quedan graves, esto lee 10-15 dB por encima de
+//     cualquier aparato que si pondere.
 #pragma once
 
 #include <stdbool.h>
