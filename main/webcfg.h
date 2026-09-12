@@ -31,3 +31,8 @@ void webcfg_set_co2_recal(webcfg_recal_fn request, webcfg_recal_status_fn status
 // recalibracion: el panel solo lo pide. Parada NO se mide nada.
 typedef bool (*webcfg_fan_fn)(bool on);
 void webcfg_set_fan(webcfg_fan_fn fn);
+
+// Limpieza del ventilador. Como la recalibracion: el panel solo la pide, la
+// ejecuta sensor_task (el comando exige el sensor parado).
+typedef bool (*webcfg_fanclean_fn)(void);
+void webcfg_set_fan_clean(webcfg_fanclean_fn fn);
