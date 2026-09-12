@@ -1,11 +1,14 @@
 #include "display.h"
 #include "board.h"
 
+#include "driver/gpio.h"
+#include "esp_attr.h"
 #include "esp_check.h"
 #include "esp_heap_caps.h"
 #include "esp_lcd_co5300.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
+#include "esp_lcd_touch.h"
 #include "esp_lcd_touch_cst9217.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
@@ -21,6 +24,72 @@ static i2c_master_bus_handle_t s_i2c_bus;
 static esp_lcd_panel_io_handle_t s_panel_io;
 static esp_lcd_panel_handle_t s_panel;
 static bool s_disp_on = true;
+
+// ----------------------------------------------------------------- tactil
+// Sustituto de lvgl_port_add_touch(): hace exactamente lo mismo salvo en una
+// cosa, la lectura NO aborta. esp_lvgl_port envuelve esp_lcd_touch_read_data()
+// en ESP_ERROR_CHECK, y un NACK esporadico del CST9217 -visto justo al
+// arrancar la radio WiFi- reiniciaba el aparato entero. Con el rollback OTA
+// activo, ese panic en el primer arranque descartaba ademas la imagen nueva.
+// Un fallo de lectura del tactil significa "no hay toque", no "muere".
+// (Upstream: esp-bsp #700; el arreglo de 2.7.2 solo cubre el caso del encoder.)
+static lv_indev_t *s_touch_indev;
+
+static void IRAM_ATTR touch_isr_cb(esp_lcd_touch_handle_t tp)
+{
+    (void)tp;
+    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, s_touch_indev);
+}
+
+static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    esp_lcd_touch_handle_t tp = lv_indev_get_driver_data(indev);
+    esp_lcd_touch_point_data_t pts[CONFIG_ESP_LCD_TOUCH_MAX_POINTS] = {0};
+    uint8_t cnt = 0;
+
+    if (esp_lcd_touch_read_data(tp) != ESP_OK ||
+        esp_lcd_touch_get_data(tp, pts, &cnt, CONFIG_ESP_LCD_TOUCH_MAX_POINTS) != ESP_OK) {
+        // Se anota, pero sin inundar el log si el bus tiene un mal dia.
+        static unsigned fails;
+        if ((++fails & 0x3F) == 1) ESP_LOGW(TAG, "lectura del tactil fallida (x%u)", fails);
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+    if (cnt > 0) {
+        data->point.x = pts[0].x;
+        data->point.y = pts[0].y;
+        data->state = LV_INDEV_STATE_PRESSED;
+    } else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+}
+
+static esp_err_t touch_attach(lv_display_t *disp, esp_lcd_touch_handle_t touch)
+{
+    const bool has_int = (BOARD_TOUCH_PIN_INT != GPIO_NUM_NC);
+
+    lvgl_port_lock(0);
+    s_touch_indev = lv_indev_create();
+    if (s_touch_indev) {
+        lv_indev_set_type(s_touch_indev, LV_INDEV_TYPE_POINTER);
+        // Con INT, LVGL solo lee cuando la ISR despierta a la tarea (igual
+        // que hace el port); sin INT, sondea a su ritmo.
+        if (has_int) lv_indev_set_mode(s_touch_indev, LV_INDEV_MODE_EVENT);
+        lv_indev_set_read_cb(s_touch_indev, touch_read_cb);
+        lv_indev_set_disp(s_touch_indev, disp);
+        lv_indev_set_driver_data(s_touch_indev, touch);
+    }
+    lvgl_port_unlock();
+    ESP_RETURN_ON_FALSE(s_touch_indev, ESP_ERR_NO_MEM, TAG, "indev tactil");
+
+    // La ISR se registra DESPUES de crear el indev: asi nunca despierta a la
+    // tarea con un puntero nulo.
+    if (has_int) {
+        ESP_RETURN_ON_ERROR(esp_lcd_touch_register_interrupt_callback(touch, touch_isr_cb),
+                            TAG, "isr tactil");
+    }
+    return ESP_OK;
+}
 
 // Los AMOLED QSPI (CO5300) exigen ventanas de volcado alineadas a 2 px; con
 // bordes impares el panel pinta basura (lineas verdes) en los limites del
@@ -193,8 +262,7 @@ esp_err_t display_init(void)
     lv_display_add_event_cb(s_disp, round_area_cb, LV_EVENT_INVALIDATE_AREA, NULL);
     lvgl_port_unlock();
 
-    const lvgl_port_touch_cfg_t touch_cfg = { .disp = s_disp, .handle = touch };
-    ESP_RETURN_ON_FALSE(lvgl_port_add_touch(&touch_cfg), ESP_FAIL, TAG, "add touch");
+    ESP_RETURN_ON_ERROR(touch_attach(s_disp, touch), TAG, "add touch");
 
     ESP_LOGI(TAG, "pantalla %dx%d lista", BOARD_LCD_H_RES, BOARD_LCD_V_RES);
     return ESP_OK;
