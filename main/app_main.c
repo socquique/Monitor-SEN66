@@ -89,6 +89,8 @@ static air_sample_t s_sample;      // protegida por s_lock
 static int64_t s_last_read_us;
 static bool s_sensor_ok;
 static bool s_had_reading;   // ha llegado alguna lectura desde el arranque
+// Definida mas abajo, junto a la recalibracion; la usa fan_clean_check.
+static esp_err_t fan_clean_run(void);
 // Lo escribe la tarea del sensor y lo lee el temporizador de la UI. LVGL no
 // es seguro entre tareas: tocar sus objetos desde la tarea del sensor era
 // pedir problemas, y ademas cambiar el brillo desde alli compite con el
@@ -213,7 +215,7 @@ static void fan_clean_check(void)
     if ((uint32_t)ahora - cfg->last_fan_clean < FAN_CLEAN_PERIOD_S) return;
 
     ESP_LOGI(TAG, "limpieza semanal del ventilador");
-    if (sen66_fan_clean() == ESP_OK) {
+    if (fan_clean_run() == ESP_OK) {
         cfg->last_fan_clean = (uint32_t)ahora;
         settings_save();
     }
@@ -253,10 +255,12 @@ static void recal_set_msg(const char *m)
     xSemaphoreGive(s_lock);
 }
 
+static volatile bool s_fanclean_req;   // limpieza manual pendiente
+
 static bool recal_request(uint16_t ppm)
 {
     if (ppm < 400 || ppm > 2000) return false;
-    if (!s_sensor_ok || s_recal_ppm != 0) return false;
+    if (!s_sensor_ok || s_recal_ppm != 0 || s_fanclean_req) return false;
     recal_set_msg("recalibrando...");
     s_recal_ppm = ppm;
     return true;
@@ -327,6 +331,44 @@ static void recal_run(uint16_t ppm)
     recal_set_msg(msg);
 }
 
+// ------------------------------------------------ limpieza del ventilador
+// Solo desde sensor_task. "Start Fan Cleaning" solo esta disponible en Idle
+// (datasheet, tabla de comandos: "During measurement: no"). Mandado en
+// medicion el sensor lo acepta y lo ignora, que es lo que pasaba: el boton no
+// hacia nada y la limpieza semanal se apuntaba como hecha sin que el
+// ventilador girase. Ahora: parar, limpiar, esperar los 10 s que pide el
+// datasheet, rearrancar. El estado VOC se guarda y se devuelve, como en la
+// recalibracion.
+static esp_err_t fan_clean_run(void)
+{
+    uint8_t voc[SEN66_VOC_STATE_LEN];
+    const bool have_voc = (sen66_get_voc_state(voc) == ESP_OK);
+
+    esp_err_t err = sen66_stop();
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "limpieza: el sensor no se para (%s)", esp_err_to_name(err));
+        return err;
+    }
+    err = sen66_fan_clean();
+    if (err != ESP_OK) ESP_LOGW(TAG, "limpieza: el comando fallo (%s)", esp_err_to_name(err));
+    // 10 s a maxima velocidad; el datasheet pide esperar >= 10 s antes de medir.
+    vTaskDelay(pdMS_TO_TICKS(11000));
+
+    if (have_voc) sen66_set_voc_state(voc);
+    if (sen66_start() != ESP_OK) {
+        ESP_LOGE(TAG, "el sensor no rearranca tras la limpieza");
+        s_sensor_ok = false;  // que lo recoja la deteccion de sensor muerto
+    }
+    return err;
+}
+
+static bool fanclean_request(void)
+{
+    if (!s_sensor_ok || s_recal_ppm != 0 || s_fanclean_req) return false;
+    s_fanclean_req = true;
+    return true;
+}
+
 // Reinicia el bus y el sensor. Un tropiezo del I2C dejaba el aparato mudo
 // hasta el siguiente reinicio a mano.
 static void sensor_recover(void)
@@ -384,6 +426,18 @@ static void sensor_task(void *arg)
         if (s_recal_ppm != 0) {
             recal_run(s_recal_ppm);
             s_recal_ppm = 0;
+        }
+
+        if (s_fanclean_req) {
+            ESP_LOGI(TAG, "limpieza manual del ventilador");
+            const esp_err_t e = fan_clean_run();
+            s_fanclean_req = false;
+            const time_t t = time(NULL);
+            if (e == ESP_OK && t > 1700000000) {
+                // Reinicia la cuenta semanal: acabamos de limpiar.
+                settings_get()->last_fan_clean = (uint32_t)t;
+                settings_save();
+            }
         }
 
         if (s_fan_request != 0) {
@@ -589,6 +643,7 @@ void app_main(void)
     ESP_ERROR_CHECK(webcfg_start(get_sample_for_web));
     webcfg_set_co2_recal(recal_request, recal_status);
     webcfg_set_fan(fan_request);
+    webcfg_set_fan_clean(fanclean_request);
     ha_mqtt_start();
 
     if (pmu_available()) {
