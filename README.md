@@ -48,7 +48,7 @@ para el histórico y un simulador de escritorio para iterar la pantalla.
 | Waveshare ESP32-S3-Touch-AMOLED-1.75 | SKU 31261 (las variantes -B y -G también sirven) — [tienda Waveshare](https://www.waveshare.com/esp32-s3-touch-amoled-1.75.htm) o la **-G** en Amazon: 🇪🇸 [.es](https://www.amazon.es/dp/B0F7XWWMJW?tag=capsuleradar-21) · 🇺🇸 [.com](https://www.amazon.com/dp/B0F7XWWMJW?tag=capsuleradar-20) · 🇩🇪 [.de](https://www.amazon.de/dp/B0F7XWWMJW?tag=capsulerada03-21) · 🇬🇧 [.co.uk](https://www.amazon.co.uk/dp/B0F7XWWMJW?tag=capsulerada0d-21) · 🇮🇹 [.it](https://www.amazon.it/dp/B0F7XWWMJW?tag=capsulerada08-21) · 🇫🇷 [.fr](https://www.amazon.fr/dp/B0F7XWWMJW?tag=capsulerada0e-21) |
 | Sensirion SEN66 | 3,3 V ±5 %, I2C, viene con cable JST GH de 6 hilos — en distribuidores ([Mouser](https://www.mouser.es/c/?q=SEN66), [DigiKey](https://www.digikey.es/en/products/result?keywords=SEN66)); no está en Amazon |
 | 4 cables al header de 8 pines | 3V3, GND, SDA, SCL |
-| 3 tornillos M2×6 | Sujetan la placa al aro del bisel |
+| 3 tornillos M2×6 | Sujetan la placa al aro del bisel — 🇪🇸 [buscar en Amazon](https://www.amazon.es/s?k=tornillos+M2x6&tag=capsuleradar-21) · 🇺🇸 [.com](https://www.amazon.com/s?k=M2x6+machine+screws&tag=capsuleradar-20) |
 | [Carcasa AirRing](https://makerworld.com/en/models/3199590-airring-air-quality-monitor-mqtt) | Imprimible, 0,24 mm de capa, 2 paredes, 15% de relleno |
 | Cable USB-C | alimentación y flasheo |
 
