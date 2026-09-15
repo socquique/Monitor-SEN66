@@ -32,8 +32,10 @@ static webcfg_sample_fn s_get_sample;
 static webcfg_recal_fn s_recal_request;
 static webcfg_recal_status_fn s_recal_status;
 static webcfg_fan_fn s_fan;
+static webcfg_fanclean_fn s_fanclean;
 
 void webcfg_set_fan(webcfg_fan_fn fn) { s_fan = fn; }
+void webcfg_set_fan_clean(webcfg_fanclean_fn fn) { s_fanclean = fn; }
 
 void webcfg_set_co2_recal(webcfg_recal_fn request, webcfg_recal_status_fn status)
 {
@@ -171,6 +173,7 @@ static const char k_page[] =
 "<button class=alt onclick=\"post('/api/beep')\">Probar sonido</button>\n"
 "<button class=alt onclick=\"post('/api/reboot')\">Reiniciar</button>\n"
 "</div>\n"
+"<div class=hint>Limpiar ventilador: 10 s a tope contra el polvo del canal de medida; unos 12 s sin lecturas. Se lanza solo una vez por semana.</div>\n"
 "<label style='margin-top:16px'>Recalibrar el CO2 con una referencia</label>\n"
 "<div class=grid><div><input id=frc type=number value=420 min=400 max=2000></div>\n"
 "<div><button class=alt style='margin-top:0;width:100%' onclick=recal()>Recalibrar</button></div></div>\n"
@@ -524,11 +527,15 @@ static esp_err_t h_beep(httpd_req_t *req)
 
 static esp_err_t h_fanclean(httpd_req_t *req)
 {
-    if (sen66_fan_clean() != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "el sensor no responde");
+    // Antes se mandaba el comando directo al sensor EN MEDICION, donde el
+    // datasheet dice que no se ejecuta: el boton no hacia nada. Ahora se
+    // encola y sensor_task para, limpia y rearranca.
+    if (!s_fanclean || !s_fanclean()) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                            "ahora no se puede: el sensor no esta listo o ya hay una limpieza o recalibracion en curso");
         return ESP_FAIL;
     }
-    return httpd_resp_sendstr(req, "limpiando (10 s)");
+    return httpd_resp_sendstr(req, "limpiando (unos 12 s sin lecturas)");
 }
 
 // Recalibracion forzada de CO2. Aqui solo se valida y se encola: el comando
